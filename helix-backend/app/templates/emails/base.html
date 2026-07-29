@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>{% block subject %}Onco Sphere{% endblock %}</title>
+  <style>
+    /* Reset */
+    body, table, td, p, a, li, blockquote {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+
+    /* Base */
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      background-color: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* Wrapper */
+    .email-wrapper {
+      width: 100%;
+      background-color: #0f172a;
+      padding: 40px 0;
+    }
+
+    /* Card */
+    .email-card {
+      max-width: 580px;
+      margin: 0 auto;
+      background-color: #1e293b;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #334155;
+    }
+
+    /* Header */
+    .email-header {
+      background: linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%);
+      padding: 32px 40px;
+      text-align: center;
+    }
+    .email-header .brand {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+      margin: 0;
+    }
+    .email-header .brand-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      margin: 4px 0 0 0;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* Body */
+    .email-body {
+      padding: 36px 40px;
+    }
+    .email-body h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin: 0 0 12px 0;
+    }
+    .email-body p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #94a3b8;
+      margin: 0 0 16px 0;
+    }
+    .email-body p.lead {
+      color: #cbd5e1;
+    }
+
+    /* Info card */
+    .info-card {
+      background-color: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 20px 0;
+    }
+    .info-row {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .info-row:last-child { margin-bottom: 0; }
+    .info-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      width: 130px;
+      flex-shrink: 0;
+    }
+    .info-value {
+      font-size: 14px;
+      color: #e2e8f0;
+      font-weight: 500;
+    }
+
+    /* OTP box */
+    .otp-box {
+      background: linear-gradient(135deg, #1d4ed820 0%, #0891b220 100%);
+      border: 2px solid #1d4ed8;
+      border-radius: 12px;
+      padding: 28px;
+      text-align: center;
+      margin: 24px 0;
+    }
+    .otp-code {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: 12px;
+      color: #60a5fa;
+      font-family: 'Courier New', monospace;
+      margin: 0;
+    }
+    .otp-hint {
+      font-size: 13px;
+      color: #64748b;
+      margin: 10px 0 0 0;
+    }
+
+    /* Status badges */
+    .badge-approved {
+      display: inline-block;
+      background-color: #052e16;
+      border: 1px solid #16a34a;
+      color: #4ade80;
+      border-radius: 20px;
+      padding: 5px 16px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .badge-rejected {
+      display: inline-block;
+      background-color: #1c0202;
+      border: 1px solid #dc2626;
+      color: #f87171;
+      border-radius: 20px;
+      padding: 5px 16px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* CTA Button */
+    .btn-primary {
+      display: inline-block;
+      background: linear-gradient(135deg, #2563eb 0%, #0891b2 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      margin: 8px 0;
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid #334155;
+      margin: 24px 0;
+    }
+
+    /* Note / warning */
+    .note-box {
+      background-color: #0f172a;
+      border-left: 3px solid #f59e0b;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin: 16px 0;
+    }
+    .note-box p {
+      font-size: 13px;
+      color: #94a3b8;
+      margin: 0;
+    }
+
+    /* Footer */
+    .email-footer {
+      padding: 24px 40px;
+      border-top: 1px solid #334155;
+      text-align: center;
+    }
+    .email-footer p {
+      font-size: 12px;
+      color: #475569;
+      margin: 0 0 6px 0;
+      line-height: 1.6;
+    }
+    .email-footer a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+
+    /* Responsive */
+    @media only screen and (max-width: 600px) {
+      .email-card { border-radius: 0 !important; }
+      .email-header, .email-body, .email-footer { padding: 24px 20px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-wrapper">
+    <div class="email-card">
+
+      <!-- Header -->
+      <div class="email-header">
+        <p class="brand">Onco Sphere</p>
+        <p class="brand-sub">Oncology Intelligence Platform</p>
+      </div>
+
+      <!-- Body -->
+      <div class="email-body">
+        {% block body %}{% endblock %}
+      </div>
+
+      <!-- Footer -->
+      <div class="email-footer">
+        <p>This email was sent by <strong>Onco Sphere</strong> — Oncology Intelligence Platform.</p>
+        <p>If you did not initiate this action, please contact <a href="mailto:{{ settings.EMAIL_FROM }}">support</a>.</p>
+        <p style="margin-top:12px; color:#334155;">© 2025 Onco Sphere. All rights reserved.</p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

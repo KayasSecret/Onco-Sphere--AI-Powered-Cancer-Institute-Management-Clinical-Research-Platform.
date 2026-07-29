@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block subject %}Update: Your Onco Sphere Access Request{% endblock %}
+
+{% block body %}
+  <div style="text-align:center; margin-bottom:24px;">
+    <span class="badge-rejected">✗ ACCESS NOT GRANTED</span>
+  </div>
+
+  <h1>Application Update</h1>
+  <p class="lead">Dear <strong style="color:#e2e8f0;">{{ user_name }}</strong>,</p>
+  <p>
+    Thank you for your interest in
+    <strong style="color:#60a5fa;">Onco Sphere Oncology Intelligence Platform</strong>.
+    After careful review, we regret to inform you that your access request has
+    <strong style="color:#f87171;">not been approved</strong> at this time.
+  </p>
+
+  {% if rejection_reason %}
+  <div class="info-card">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding:6px 0;">
+          <span class="info-label" style="color:#64748b;">Decision Note</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0 0 0;">
+          <span class="info-value" style="color:#94a3b8; font-style:italic;">{{ rejection_reason }}</span>
+        </td>
+      </tr>
+    </table>
+  </div>
+  {% endif %}
+
+  <hr class="divider" />
+
+  <p style="font-size:15px; font-weight:600; color:#f1f5f9;">What you can do:</p>
+  <p>• Review the information you submitted and ensure all details are accurate.</p>
+  <p>• Contact your institution's coordinator or supervisor for guidance.</p>
+  <p>• Reach out to our support team if you believe this decision was made in error.</p>
+
+  <div class="note-box">
+    <p>📧 To appeal this decision or for further assistance, please contact our support team at
+       <a href="mailto:{{ settings.EMAIL_FROM }}" style="color:#60a5fa;">{{ settings.EMAIL_FROM }}</a>.
+    </p>
+  </div>
+
+  <p>
+    We appreciate your understanding and thank you for your interest in our platform.
+  </p>
+
+  <p style="font-size:13px; color:#64748b; margin-top:24px;">
+    — Onco Sphere Research Office
+  </p>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block subject %}Application Received — Onco Sphere{% endblock %}
+
+{% block body %}
+  <h1>Application Received ✓</h1>
+  <p class="lead">Dear <strong style="color:#e2e8f0;">{{ user_name }}</strong>,</p>
+  <p>
+    Thank you for submitting your researcher access application to
+    <strong style="color:#60a5fa;">Onco Sphere Oncology Intelligence Platform</strong>.
+    Your application has been received and is currently under review.
+  </p>
+
+  <!-- Application summary card -->
+  <div class="info-card">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding:6px 0;">
+          <span class="info-label">Email</span>
+          <span class="info-value">{{ user_email }}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;">
+          <span class="info-label">Institution</span>
+          <span class="info-value">{{ institution }}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;">
+          <span class="info-label">Role / Designation</span>
+          <span class="info-value">{{ researcher_role }}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0;">
+          <span class="info-label">Research Area</span>
+          <span class="info-value">{{ research_area }}</span>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <hr class="divider" />
+
+  <p style="font-size:15px; font-weight:600; color:#f1f5f9;">What happens next?</p>
+  <p>1. Your application is in the queue for <strong style="color:#e2e8f0;">Super Admin review</strong>.</p>
+  <p>2. You will receive an email notification once a decision is made.</p>
+  <p>3. <strong style="color:#f59e0b;">Please do NOT attempt to log in</strong> until you receive an approval email.</p>
+
+  <div class="note-box">
+    <p>⚠️ If you did not submit this application, please contact our support team immediately.</p>
+  </div>
+
+  <p style="font-size:13px; color:#64748b; margin-top:24px;">
+    — Onco Sphere Research Office
+  </p>
+{% endblock %}

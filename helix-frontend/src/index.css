@@ -1,0 +1,322 @@
+/* ============================================================
+   HELIX — Oncology Intelligence Platform
+   Global CSS — design tokens + base resets
+   All color tokens mirror tailwind.config.js for use outside Tailwind
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Custom Properties ──────────────────────────────────── */
+:root {
+  /* Brand palette */
+  --color-navy:         #252D7E;
+  --color-navy-dark:    #1B2260;
+  --color-navy-light:   #3340A0;
+  --color-blue:         #3D6BC5;
+  --color-blue-dark:    #2E56A8;
+  --color-blue-light:   #5582D4;
+  --color-light:        #A9CCE0;
+  --color-light-dark:   #8AB8D0;
+  --color-light-light:  #C8DFF0;
+
+  /* Surfaces */
+  --surface-base:       #F4F7FB;
+  --surface-card:       #FFFFFF;
+  --surface-hover:      #EDF1F8;
+  --surface-border:     #DDE3EE;
+
+  /* Ink */
+  --ink-primary:        #1A1F36;
+  --ink-secondary:      #6B7280;
+  --ink-disabled:       #9CA3AF;
+  --ink-inverse:        #FFFFFF;
+
+  /* Status */
+  --status-active:      #2E9E7A;
+  --status-attention:   #C9973A;
+  --status-critical:    #B84C42;
+  --status-inactive:    #6B7280;
+
+  /* Sidebar geometry */
+  --sidebar-width-open:   240px;
+  --sidebar-width-closed:  64px;
+  --sidebar-transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Top bar */
+  --topbar-height:     60px;
+}
+
+/* ── Base Resets ────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px; /* clinical density base */
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--surface-base);
+  color: var(--ink-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── Typography ─────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  color: var(--ink-primary);
+  line-height: 1.2;
+}
+
+a {
+  color: var(--color-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-blue-dark);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-border);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-secondary);
+}
+
+/* ── Focus rings ────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Utility layers ─────────────────────────────────────────── */
+@layer components {
+  /* Sidebar transition helpers */
+  .sidebar-transition {
+    transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .label-transition {
+    transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1),
+                width 150ms cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 150ms;
+  }
+
+  /* Card base */
+  .helix-card {
+    @apply bg-surface-card rounded-lg shadow-card border border-surface-border;
+  }
+
+  /* Primary button base */
+  .btn-primary {
+    @apply bg-brand-blue text-ink-inverse font-medium rounded-md px-4 py-2
+           hover:bg-brand-blue-dark focus-visible:ring-2 focus-visible:ring-brand-blue
+           focus-visible:ring-offset-2 transition-colors duration-fast;
+  }
+
+  /* Skeleton shimmer */
+  .skeleton {
+    @apply bg-surface-border rounded animate-skeleton-pulse;
+  }
+}
+
+/* ── Print styles ────────────────────────────────────────────── */
+@media print {
+  .sidebar, .topbar, .no-print { display: none !important; }
+  body { background: white; color: black; }
+}
+
+/* ── Dark Mode Custom Tokens & Global Contrast System ─────────── */
+.dark {
+  /* Surfaces — Modern Obsidian Slate elevation */
+  --surface-base:       #0F172A; /* Slate 900 base background */
+  --surface-card:       #1E293B; /* Slate 800 cards & containers */
+  --surface-hover:      #334155; /* Slate 700 hover state */
+  --surface-border:     #334155; /* Slate 700 border lines */
+
+  /* Ink / Text — High Contrast, Ultra Crisp & Legible */
+  --ink-primary:        #F8FAFC; /* Slate 50 (bright, clear primary text) */
+  --ink-secondary:      #CBD5E1; /* Slate 300 (crisp, readable subtitle/labels) */
+  --ink-disabled:       #64748B; /* Slate 500 (disabled text) */
+  --ink-inverse:        #0F172A; /* Text on bright accents */
+
+  /* Brand Overrides for Dark Mode */
+  --color-navy:         #60A5FA; /* Electric Sky Blue titles */
+  --color-navy-dark:    #3B82F6;
+  --color-navy-light:   #93C5FD;
+  
+  --color-blue:         #3B82F6;
+  --color-blue-dark:    #2563EB;
+  --color-blue-light:   #60A5FA;
+  
+  --color-light:        #1E293B;
+  --color-light-dark:   #0F172A;
+  --color-light-light:  #374151;
+
+  /* Status Colors Backgrounds in Dark Mode */
+  --status-active:      #34D399;   /* Emerald 400 */
+  --status-active-bg:   rgba(52, 211, 153, 0.15);
+  --status-attention:   #FBBF24;   /* Amber 400 */
+  --status-attention-bg:rgba(251, 191, 36, 0.15);
+  --status-critical:    #F87171;   /* Rose 400 */
+  --status-critical-bg: rgba(248, 113, 113, 0.15);
+  --status-inactive:    #9CA3AF;   /* Gray 400 */
+  --status-inactive-bg: rgba(156, 163, 175, 0.15);
+}
+
+/* Global Dark Mode Component Legibility Overrides */
+.dark input, 
+.dark textarea, 
+.dark select {
+  background-color: var(--surface-card) !important;
+  color: var(--ink-primary) !important;
+  border-color: var(--surface-border) !important;
+}
+
+.dark input::placeholder, 
+.dark textarea::placeholder {
+  color: var(--ink-disabled) !important;
+}
+
+.dark table th {
+  background-color: #0F172A !important;
+  color: #94A3B8 !important;
+  border-bottom-color: var(--surface-border) !important;
+}
+
+.dark table td {
+  border-bottom-color: var(--surface-border) !important;
+  color: var(--ink-primary) !important;
+}
+
+.dark table tr:hover {
+  background-color: rgba(51, 65, 85, 0.4) !important;
+}
+
+.dark [role="dialog"] {
+  background-color: var(--surface-card) !important;
+  border-color: var(--surface-border) !important;
+  color: var(--ink-primary) !important;
+}
+
+/* ── React DatePicker Theme Customizations ───────────────────── */
+.react-datepicker-popper-custom {
+  z-index: 99999 !important;
+}
+
+.react-datepicker__portal {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  z-index: 999999 !important;
+}
+
+.react-datepicker {
+  font-family: inherit !important;
+  background-color: var(--surface-card) !important;
+  color: var(--ink-primary) !important;
+  border: 1px solid var(--surface-border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  overflow: hidden !important;
+}
+
+.react-datepicker__header {
+  background-color: var(--surface-base) !important;
+  border-bottom: 1px solid var(--surface-border) !important;
+  padding-top: 8px !important;
+}
+
+.react-datepicker__day-name, 
+.react-datepicker__day, 
+.react-datepicker__time-name {
+  color: var(--ink-primary) !important;
+  width: 2.2rem !important;
+  line-height: 2.2rem !important;
+}
+
+.react-datepicker__day:hover,
+.react-datepicker__month-text:hover,
+.react-datepicker__quarter-text:hover,
+.react-datepicker__year-text:hover {
+  background-color: var(--surface-hover) !important;
+  border-radius: 6px !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: var(--color-blue) !important;
+  color: var(--ink-inverse) !important;
+  border-radius: 6px !important;
+}
+
+.react-datepicker__day--disabled {
+  color: var(--ink-disabled) !important;
+  cursor: not-allowed !important;
+}
+
+.react-datepicker__day--disabled:hover {
+  background-color: transparent !important;
+}
+
+.react-datepicker__current-month {
+  color: var(--ink-primary) !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+}
+
+.react-datepicker__navigation {
+  top: 10px !important;
+}
+
+.react-datepicker__close-icon {
+  padding: 0 8px 0 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.react-datepicker__close-icon::after {
+  background-color: var(--ink-secondary) !important;
+  color: var(--surface-card) !important;
+  font-size: 12px !important;
+  height: 16px !important;
+  width: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+}
+
+.DatePicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker-wrapper {
+  width: 100% !important;
+}
