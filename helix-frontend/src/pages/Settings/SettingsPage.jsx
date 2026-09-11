@@ -25,6 +25,7 @@ import {
   RiMoonLine,
   RiServerLine,
   RiEditLine,
+  RiCameraLine,
   RiEyeLine,
   RiEyeOffLine,
 } from 'react-icons/ri'
@@ -160,7 +161,7 @@ export default function SettingsPage() {
     try {
       const res = await authService.updateProfile({
         full_name: profileName.trim(),
-        photo_url: profilePhotoUrl || null,
+        photo_url: profilePhotoUrl || "",
       })
       
       // Update Redux state and localStorage
@@ -180,6 +181,28 @@ export default function SettingsPage() {
         errorMsg = detail.map((d) => `${d.loc[d.loc.length - 1]}: ${d.msg}`).join(', ')
       }
       toast.error(errorMsg)
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
+  const handleDirectPhotoChange = async (newPhotoUrl) => {
+    setSavingProfile(true)
+    try {
+      const res = await authService.updateProfile({
+        full_name: user?.full_name || profileName,
+        photo_url: newPhotoUrl || "",
+      })
+      
+      setProfilePhotoUrl(res.data.photo_url || '')
+      dispatch(updateUserProfile({
+        full_name: res.data.full_name,
+        photo_url: res.data.photo_url,
+      }))
+      
+      toast.success(newPhotoUrl ? 'Profile photo updated successfully.' : 'Profile photo removed.')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update profile photo.')
     } finally {
       setSavingProfile(false)
     }
@@ -253,26 +276,53 @@ export default function SettingsPage() {
                 <>
                   {/* Avatar Info Row */}
                   <div className="flex items-center gap-5 p-5 border border-surface-border bg-surface-base/30 rounded-xl">
-                    <div className="w-16 h-16 rounded-full bg-brand-blue/15 text-brand-blue border border-brand-blue/20 overflow-hidden flex items-center justify-center text-2xl font-bold uppercase shadow-inner shrink-0">
-                      {user?.photo_url ? (
-                        <img src={user.photo_url} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        user?.full_name?.charAt(0) || 'U'
+                    <PhotoSelector
+                      value={user?.photo_url}
+                      onChange={(newUrl) => handleDirectPhotoChange(newUrl)}
+                      customTrigger={({ openModal }) => (
+                        <button
+                          type="button"
+                          onClick={openModal}
+                          title="Click to change profile picture"
+                          className="w-16 h-16 rounded-full bg-brand-blue/15 text-brand-blue border border-brand-blue/20 overflow-hidden flex items-center justify-center text-2xl font-bold uppercase shadow-inner shrink-0 relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all"
+                        >
+                          {user?.photo_url ? (
+                            <img src={user.photo_url} alt="Profile" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          ) : (
+                            user?.full_name?.charAt(0) || 'U'
+                          )}
+                          <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity duration-200">
+                            <RiCameraLine size={20} />
+                            <span className="text-[9px] font-bold mt-0.5 tracking-tight">CHANGE</span>
+                          </div>
+                        </button>
                       )}
-                    </div>
+                    />
                     <div className="space-y-1 flex-1 min-w-0">
                       <h4 className="text-base font-bold text-ink-primary leading-tight truncate">{user?.full_name}</h4>
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-brand-blue/10 text-brand-blue border border-brand-blue/20">
                         {user?.role?.replace('_', ' ')}
                       </span>
                     </div>
-                    <Button
-                      onClick={() => setIsEditingProfile(true)}
-                      className="bg-surface-card hover:bg-surface-hover border border-surface-border text-ink-primary text-xs flex items-center gap-1.5 h-9"
-                    >
-                      <RiEditLine size={14} />
-                      Edit Profile
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {user?.photo_url && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => handleDirectPhotoChange('')}
+                          className="text-status-critical text-xs hover:bg-status-critical/10 h-9 px-2.5 font-medium"
+                        >
+                          Remove Photo
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => setIsEditingProfile(true)}
+                        className="bg-surface-card hover:bg-surface-hover border border-surface-border text-ink-primary text-xs flex items-center gap-1.5 h-9 font-semibold"
+                      >
+                        <RiEditLine size={14} />
+                        Edit Profile
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Data Table */}
@@ -310,14 +360,7 @@ export default function SettingsPage() {
                   </FormField>
 
                   <FormField label="Profile Picture (Webcam Selfie or Image File)">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full border border-surface-border bg-surface-base/55 overflow-hidden flex items-center justify-center text-xl font-bold uppercase shrink-0">
-                        {profilePhotoUrl ? (
-                          <img src={profilePhotoUrl} alt="Preview" className="w-full h-full object-cover" />
-                        ) : (
-                          profileName.charAt(0) || 'U'
-                        )}
-                      </div>
+                    <div className="flex items-center gap-3">
                       <PhotoSelector
                         value={profilePhotoUrl}
                         onChange={(url) => setProfilePhotoUrl(url)}
@@ -327,7 +370,7 @@ export default function SettingsPage() {
                           type="button"
                           variant="ghost"
                           onClick={() => setProfilePhotoUrl('')}
-                          className="text-status-critical text-xs hover:bg-status-critical/10 h-9"
+                          className="text-status-critical text-xs hover:bg-status-critical/10 h-9 px-3 font-semibold"
                         >
                           Remove Photo
                         </Button>

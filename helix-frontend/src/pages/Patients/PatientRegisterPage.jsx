@@ -205,7 +205,18 @@ export default function PatientRegisterPage() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit, onError)} noValidate className="space-y-6 bg-surface-card p-6 rounded-lg border border-surface-border">
+      <form
+        onSubmit={handleSubmit(onSubmit, onError)}
+        noValidate
+        className="space-y-6 bg-surface-card p-6 rounded-lg border border-surface-border"
+        onKeyDown={(e) => {
+          // Prevent Enter key from submitting form on intermediate steps
+          if (e.key === 'Enter' && activeStep < 3) {
+            e.preventDefault()
+            nextStep()
+          }
+        }}
+      >
         {/* Step 1: Identity */}
         {activeStep === 1 && (
           <div className="space-y-5 animate-fade-in">

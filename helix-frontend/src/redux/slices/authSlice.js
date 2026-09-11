@@ -117,18 +117,12 @@ const authSlice = createSlice({
     },
     updateUserProfile: (state, action) => {
       if (state.user) {
-        state.user.full_name = action.payload.full_name
-        state.user.photo_url = action.payload.photo_url
-        
-        const plainUser = {
-          id: state.user.id,
-          email: state.user.email,
-          role: state.user.role,
-          is_active: state.user.is_active,
+        state.user = {
+          ...state.user,
           full_name: action.payload.full_name,
           photo_url: action.payload.photo_url,
         }
-        localStorage.setItem('helix_user', JSON.stringify(plainUser))
+        localStorage.setItem('helix_user', JSON.stringify(state.user))
       }
     },
   },

@@ -6,7 +6,7 @@ import { Input } from './ui/input'
 import { toast } from 'sonner'
 import patientService from '../services/patientService'
 
-export default function PhotoSelector({ value, onChange, onUploadingChange }) {
+export default function PhotoSelector({ value, onChange, onUploadingChange, customTrigger, hidePreview }) {
   const [isOpen, setIsOpen] = useState(false)
   const [mode, setMode] = useState('select') // 'select' | 'camera' | 'crop'
   const [imageSrc, setImageSrc] = useState(null)
@@ -193,14 +193,9 @@ export default function PhotoSelector({ value, onChange, onUploadingChange }) {
 
   return (
     <>
-      <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-lg bg-surface-base border border-surface-border overflow-hidden flex items-center justify-center text-xs text-ink-disabled font-medium relative group">
-          {value ? (
-            <img src={value} alt="Profile" className="w-full h-full object-cover" />
-          ) : (
-            'No Photo'
-          )}
-        </div>
+      {customTrigger ? (
+        customTrigger({ openModal: () => setIsOpen(true) })
+      ) : hidePreview ? (
         <Button
           type="button"
           variant="outline"
@@ -209,7 +204,25 @@ export default function PhotoSelector({ value, onChange, onUploadingChange }) {
         >
           {value ? 'Change Photo' : 'Attach Photo'}
         </Button>
-      </div>
+      ) : (
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-lg bg-surface-base border border-surface-border overflow-hidden flex items-center justify-center text-xs text-ink-disabled font-medium relative group">
+            {value ? (
+              <img src={value} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              'No Photo'
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="border-surface-border text-ink-primary hover:bg-surface-hover text-xs"
+            onClick={() => setIsOpen(true)}
+          >
+            {value ? 'Change Photo' : 'Attach Photo'}
+          </Button>
+        </div>
+      )}
 
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) closeModal() }}>
         <DialogContent className="sm:max-w-md bg-surface-card border border-surface-border">

@@ -52,11 +52,11 @@ def get_upload_status(
 @router.post("/image")
 async def upload_image(
     file: UploadFile = File(...),
-    current_user = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    current_user = Depends(get_current_user),
 ):
     """
-    Upload profile photo.
-    Admins and Super Admins only.
+    Upload profile photo or image.
+    All authenticated users.
     Falls back to local file storage if Cloudinary credentials are not configured.
     """
     # Verify file type

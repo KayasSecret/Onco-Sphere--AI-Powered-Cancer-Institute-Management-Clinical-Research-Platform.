@@ -82,6 +82,19 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             db.rollback()
             print(f"\n[MIGRATION ERROR] Failed to add reset_otp columns: {e}\n")
+
+    # 4. 'photo_url' column
+    try:
+        db.execute(text("SELECT photo_url FROM users LIMIT 1"))
+    except Exception:
+        db.rollback()
+        try:
+            db.execute(text("ALTER TABLE users ADD COLUMN photo_url VARCHAR(500)"))
+            db.commit()
+            print("\n[MIGRATION SUCCESS] Column 'photo_url' added to 'users' table.\n")
+        except Exception as e:
+            db.rollback()
+            print(f"\n[MIGRATION ERROR] Failed to add column 'photo_url': {e}\n")
             
     finally:
         db.close()

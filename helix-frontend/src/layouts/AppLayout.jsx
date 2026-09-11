@@ -14,7 +14,7 @@ import {
 } from 'react-icons/ri'
 import ICSRLogo from '../assets/ICSR-LOGO.png'
 import { selectSidebarOpen, setSidebarOpen } from '../redux/slices/uiSlice'
-import { selectUser, logoutThunk } from '../redux/slices/authSlice'
+import { selectUser, logoutThunk, getMeThunk } from '../redux/slices/authSlice'
 import { Sheet, SheetContent } from '../components/ui/sheet'
 
 // ── Nav items — role-aware filtering happens in the component ────────────────
@@ -258,6 +258,10 @@ export default function AppLayout() {
   const sidebarOpen = useSelector(selectSidebarOpen)
   const user = useSelector(selectUser)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  useEffect(() => {
+    dispatch(getMeThunk())
+  }, [dispatch])
 
   const filteredNav = NAV_ITEMS.filter(
     (item) => item.roles.includes(user?.role)

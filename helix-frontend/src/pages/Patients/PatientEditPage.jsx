@@ -107,7 +107,7 @@ export default function PatientEditPage() {
 
   const onSubmit = async (data) => {
     const formatDate = (val) => {
-      if (!val) return null
+      if (!val || val === '') return null
       if (val instanceof Date) {
         const y = val.getFullYear()
         const m = String(val.getMonth() + 1).padStart(2, '0')
@@ -117,10 +117,24 @@ export default function PatientEditPage() {
       return val
     }
 
+    // Exclude read-only metadata fields from update payload
+    const { id: _id, patient_code: _code, created_at: _ca, updated_at: _ua, ...cleanData } = data
+
     const formattedData = {
-      ...data,
-      date_of_birth: formatDate(data.date_of_birth),
-      admission_date: formatDate(data.admission_date),
+      ...cleanData,
+      date_of_birth: formatDate(cleanData.date_of_birth),
+      admission_date: formatDate(cleanData.admission_date),
+      discharge_date: formatDate(cleanData.discharge_date),
+      email: cleanData.email && cleanData.email.trim() !== '' ? cleanData.email.trim() : null,
+      phone: cleanData.phone ? cleanData.phone.trim() : '',
+      blood_group: cleanData.blood_group || '',
+      photo_url: cleanData.photo_url || '',
+      // Emergency contact: send empty string instead of null (DB column is NOT NULL)
+      emergency_contact_name: cleanData.emergency_contact_name || '',
+      emergency_contact_phone: cleanData.emergency_contact_phone || '',
+      emergency_contact_relationship: cleanData.emergency_contact_relationship || '',
+      medical_notes: cleanData.medical_notes || '',
+      remarks: cleanData.remarks || '',
     }
 
     try {
@@ -128,7 +142,7 @@ export default function PatientEditPage() {
       toast.success('Patient record updated successfully.')
       navigate(`/patients/${id}`)
     } catch (err) {
-      toast.error(err || 'Failed to update patient.')
+      toast.error(typeof err === 'string' ? err : 'Failed to update patient record.')
     }
   }
 
@@ -136,7 +150,6 @@ export default function PatientEditPage() {
     1: ['full_name', 'date_of_birth', 'gender', 'blood_group', 'photo_url'],
     2: ['phone', 'email', 'address', 'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship'],
     3: ['department', 'assigned_doctor', 'cancer_category', 'cancer_type', 'cancer_stage', 'treatment_status'],
-    4: ['admission_date', 'discharge_date', 'medical_notes', 'remarks'],
   }
 
   const nextStep = async () => {
@@ -145,13 +158,13 @@ export default function PatientEditPage() {
       const isValid = await trigger(fieldsToValidate)
       if (!isValid) return
     }
-    setActiveStep((prev) => Math.min(prev + 1, 4))
+    setActiveStep((prev) => Math.min(prev + 1, 3))
   }
 
   const prevStep = () => setActiveStep((prev) => Math.max(prev - 1, 1))
 
   const onError = (formErrors) => {
-    for (let step = 1; step <= 4; step++) {
+    for (let step = 1; step <= 3; step++) {
       const stepFields = STEP_FIELDS[step]
       if (stepFields) {
         const hasError = stepFields.some((field) => formErrors[field])
@@ -184,7 +197,6 @@ export default function PatientEditPage() {
           { step: 1, label: 'Identity' },
           { step: 2, label: 'Contact' },
           { step: 3, label: 'Clinical' },
-          { step: 4, label: 'Timeline & Notes' },
         ].map((item) => (
           <div
             key={item.step}
@@ -208,7 +220,18 @@ export default function PatientEditPage() {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit, onError)} noValidate className="space-y-6 bg-surface-card p-6 rounded-lg border border-surface-border">
+      <form
+        onSubmit={handleSubmit(onSubmit, onError)}
+        noValidate
+        className="space-y-6 bg-surface-card p-6 rounded-lg border border-surface-border"
+        onKeyDown={(e) => {
+          // Prevent Enter key from submitting form on intermediate steps
+          if (e.key === 'Enter' && activeStep < 3) {
+            e.preventDefault()
+            nextStep()
+          }
+        }}
+      >
         {activeStep === 1 && (
           <div className="space-y-5 animate-fade-in">
             <h3 className="text-sm font-semibold text-brand-navy uppercase tracking-wider">Demographics &amp; Identity</h3>
@@ -439,7 +462,7 @@ export default function PatientEditPage() {
             Back
           </Button>
 
-          {activeStep < 4 ? (
+          {activeStep < 3 ? (
             <Button
               type="button"
               className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse"

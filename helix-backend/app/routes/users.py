@@ -131,8 +131,8 @@ def update_own_profile(
         if len(name_val) < 2:
             raise HTTPException(status_code=400, detail="Name must be at least 2 characters.")
         current_user.full_name = name_val
-    if payload.photo_url is not None:
-        current_user.photo_url = payload.photo_url if payload.photo_url != "" else None
+    if "photo_url" in payload.model_fields_set:
+        current_user.photo_url = payload.photo_url if (payload.photo_url and payload.photo_url.strip() != "") else None
     
     db.commit()
     db.refresh(current_user)

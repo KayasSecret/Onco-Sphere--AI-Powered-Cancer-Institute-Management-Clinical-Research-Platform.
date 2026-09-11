@@ -1,6 +1,6 @@
 import re
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, date
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -127,7 +127,25 @@ def create_patient(
     if not patient_data.get("cancer_stage"):
         patient_data["cancer_stage"] = "Not Staged"
     if not patient_data.get("treatment_status"):
-        patient_data["treatment_status"] = "NEWLY_DIAGNOSED"
+        patient_data["treatment_status"] = TreatmentStatus.NEWLY_DIAGNOSED
+    else:
+        # Handle if treatment_status came as an enum key string like "UNDER_TREATMENT"
+        ts_val = patient_data["treatment_status"]
+        if isinstance(ts_val, str):
+            ts_key_map = {
+                "NEWLY_DIAGNOSED": TreatmentStatus.NEWLY_DIAGNOSED,
+                "UNDER_TREATMENT": TreatmentStatus.UNDER_TREATMENT,
+                "IN_REMISSION": TreatmentStatus.IN_REMISSION,
+                "PALLIATIVE": TreatmentStatus.PALLIATIVE,
+                "DISCHARGED": TreatmentStatus.DISCHARGED,
+                "Newly Diagnosed": TreatmentStatus.NEWLY_DIAGNOSED,
+                "Under Treatment": TreatmentStatus.UNDER_TREATMENT,
+                "In Remission": TreatmentStatus.IN_REMISSION,
+                "Palliative": TreatmentStatus.PALLIATIVE,
+                "Discharged": TreatmentStatus.DISCHARGED,
+            }
+            if ts_val in ts_key_map:
+                patient_data["treatment_status"] = ts_key_map[ts_val]
     if not patient_data.get("admission_date"):
         patient_data["admission_date"] = date.today()
 
@@ -177,11 +195,11 @@ def update_patient(
     patient_id: int,
     payload: PatientUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    current_user = Depends(get_current_user),
 ):
     """
     Update patient details.
-    Requires ADMIN or SUPER_ADMIN role.
+    Available to authenticated users.
     """
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
@@ -191,18 +209,60 @@ def update_patient(
         )
 
     update_data = payload.model_dump(exclude_unset=True)
+
+    # Ensure non-nullable DB columns have safe fallbacks
+    if "blood_group" in update_data and not update_data["blood_group"]:
+        update_data["blood_group"] = patient.blood_group or ""
+    if "department" in update_data and not update_data["department"]:
+        update_data["department"] = patient.department or "Oncology"
+    if "assigned_doctor" in update_data and not update_data["assigned_doctor"]:
+        update_data["assigned_doctor"] = patient.assigned_doctor or "Unassigned"
+    if "primary_diagnosis" in update_data and not update_data["primary_diagnosis"]:
+        update_data["primary_diagnosis"] = patient.primary_diagnosis or "General Oncology Case"
+    if "cancer_stage" in update_data and not update_data["cancer_stage"]:
+        update_data["cancer_stage"] = patient.cancer_stage or "Not Staged"
+    if "admission_date" in update_data and not update_data["admission_date"]:
+        update_data["admission_date"] = patient.admission_date or date.today()
+
+    # Emergency contact fields — DB has NOT NULL; use existing values or empty string
+    if "emergency_contact_name" not in update_data or update_data["emergency_contact_name"] is None:
+        update_data["emergency_contact_name"] = patient.emergency_contact_name or ""
+    if "emergency_contact_phone" not in update_data or update_data["emergency_contact_phone"] is None:
+        update_data["emergency_contact_phone"] = patient.emergency_contact_phone or ""
+    if "emergency_contact_relationship" not in update_data or update_data["emergency_contact_relationship"] is None:
+        update_data["emergency_contact_relationship"] = patient.emergency_contact_relationship or ""
+
+    # Other nullable-but-safe fields
+    if "photo_url" not in update_data or update_data["photo_url"] is None:
+        update_data["photo_url"] = patient.photo_url or ""
+    if "medical_notes" not in update_data or update_data["medical_notes"] is None:
+        update_data["medical_notes"] = patient.medical_notes or ""
+    if "remarks" not in update_data or update_data["remarks"] is None:
+        update_data["remarks"] = patient.remarks or ""
+
+    # treatment_status: ensure it never becomes None
+    if "treatment_status" not in update_data or update_data["treatment_status"] is None:
+        update_data["treatment_status"] = patient.treatment_status
+
     if "cancer_category" in update_data or "cancer_type" in update_data:
         cat = update_data.get("cancer_category", patient.cancer_category)
         typ = update_data.get("cancer_type", patient.cancer_type)
-        if cat and typ:
-            update_data["cancer_type_site"] = f"{cat} - {typ}"
+        if cat or typ:
+            update_data["cancer_type_site"] = f"{cat or 'Unspecified'} - {typ or 'Unspecified'}"
 
     for key, value in update_data.items():
         setattr(patient, key, value)
 
-    db.commit()
-    db.refresh(patient)
-    return patient
+    try:
+        db.commit()
+        db.refresh(patient)
+        return patient
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to update patient record: {str(e)}",
+        )
 
 
 @router.delete("/{patient_id}", status_code=status.HTTP_204_NO_CONTENT)

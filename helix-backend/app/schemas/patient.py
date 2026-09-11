@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import date, datetime
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, model_validator
 from app.models.patient import TreatmentStatus
 
 
@@ -45,7 +45,7 @@ class PatientUpdate(BaseModel):
     blood_group: Optional[str] = None
     photo_url: Optional[str] = None
     phone: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     address: Optional[str] = None
     
     emergency_contact_name: Optional[str] = None
@@ -66,6 +66,44 @@ class PatientUpdate(BaseModel):
     
     medical_notes: Optional[str] = None
     remarks: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def clean_empty_strings_and_enums(cls, data: dict):
+        if not isinstance(data, dict):
+            return data
+        
+        # For date fields: empty string → None is correct (these are truly optional)
+        for field in ["date_of_birth", "admission_date", "discharge_date", "email", "blood_group", "photo_url"]:
+            if field in data and data[field] == "":
+                data[field] = None
+
+        # For string fields that are NOT NULL in DB: empty string is fine, keep as ""
+        for field in ["emergency_contact_name", "emergency_contact_phone", "emergency_contact_relationship",
+                      "medical_notes", "remarks"]:
+            if field in data and data[field] is None:
+                data[field] = ""
+        
+        # Handle treatment status enum conversion
+        if "treatment_status" in data and data["treatment_status"]:
+            val = str(data["treatment_status"])
+            mapping = {
+                "NEWLY_DIAGNOSED": TreatmentStatus.NEWLY_DIAGNOSED,
+                "UNDER_TREATMENT": TreatmentStatus.UNDER_TREATMENT,
+                "IN_REMISSION": TreatmentStatus.IN_REMISSION,
+                "PALLIATIVE": TreatmentStatus.PALLIATIVE,
+                "DISCHARGED": TreatmentStatus.DISCHARGED,
+                "Newly Diagnosed": TreatmentStatus.NEWLY_DIAGNOSED,
+                "Under Treatment": TreatmentStatus.UNDER_TREATMENT,
+                "In Remission": TreatmentStatus.IN_REMISSION,
+                "Palliative": TreatmentStatus.PALLIATIVE,
+                "Discharged": TreatmentStatus.DISCHARGED,
+            }
+            if val in mapping:
+                data["treatment_status"] = mapping[val]
+        
+        return data
+
 
 
 class PatientResponse(PatientBase):
