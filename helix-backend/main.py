@@ -233,9 +233,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:5173",
-    "http://localhost:4173",
-    "https://onco-sphere-ai-powered-cancer-institute-management-8fwl8k2t.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:4173",
+        "https://onco-sphere-ai-powered-cancer-insti.vercel.app",
+        "https://onco-sphere-ai-powered-cancer-institute-management-8fwl8k2t.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
