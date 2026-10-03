@@ -58,7 +58,7 @@ export default function DataTable({
     <div className="space-y-4">
       {/* Search Input Bar */}
       {onSearchChange && (
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 max-w-sm">
+        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 w-full sm:max-w-sm">
           <div className="relative flex-1">
             <RiSearchLine
               size={16}
@@ -91,14 +91,14 @@ export default function DataTable({
       )}
 
       {/* Styled Grid/Table */}
-      <div className="border border-surface-border rounded-lg bg-surface-card overflow-hidden shadow-xs">
+      <div className="border border-surface-border rounded-lg bg-surface-card overflow-hidden shadow-xs overflow-x-auto">
         <Table>
           <TableHeader className="bg-surface-base border-b border-surface-border">
             <TableRow>
               {columns.map((col, idx) => (
                 <TableHead
                   key={idx}
-                  className="text-brand-navy font-semibold text-xs py-3 px-4 uppercase tracking-wider text-left"
+                  className={`text-brand-navy font-semibold text-xs py-3 px-4 uppercase tracking-wider text-left${col.headerClassName ? ` ${col.headerClassName}` : ''}`}
                 >
                   {col.header}
                 </TableHead>
@@ -123,7 +123,7 @@ export default function DataTable({
                     return (
                       <TableCell
                         key={colIdx}
-                        className="py-3.5 px-4 text-sm text-ink-primary align-middle"
+                        className={`py-3.5 px-4 text-sm text-ink-primary align-middle${col.cellClassName ? ` ${col.cellClassName}` : ''}`}
                       >
                         {col.cell ? col.cell(row, val) : val}
                       </TableCell>
@@ -144,7 +144,7 @@ export default function DataTable({
 
       {/* Server-Side Pagination Bar */}
       {onPageChange && totalPages > 1 && (
-        <div className="flex items-center justify-between px-2 pt-2 text-xs text-ink-secondary font-medium">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-2 pt-2 text-xs text-ink-secondary font-medium">
           <div>
             Showing <span className="text-ink-primary font-semibold">{(page - 1) * limit + 1}</span> to{' '}
             <span className="text-ink-primary font-semibold">

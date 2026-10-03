@@ -1,7 +1,7 @@
 import os
 import uuid
+import logging
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import cloudinary
 import cloudinary.uploader
@@ -9,6 +9,8 @@ from app.config.settings import settings
 from app.database.db import get_db
 from app.middleware.auth import require_roles, get_current_user
 from app.models.user import UserRole
+
+logger = logging.getLogger("helix.upload")
 
 router = APIRouter(prefix="/upload", tags=["Upload Service"])
 
@@ -32,7 +34,7 @@ if (
         )
         cloudinary_active = True
     except Exception as e:
-        print(f"Cloudinary config failed: {e}")
+        logger.warning("Cloudinary config failed: %s", e)
 
 
 @router.get("/status")
@@ -80,7 +82,7 @@ async def upload_image(
             return {"url": upload_result.get("secure_url")}
         except Exception as e:
             # Fallback to local on Cloudinary failure
-            print(f"Cloudinary upload failed: {e}. Falling back to local storage.")
+            logger.warning("Cloudinary upload failed: %s. Falling back to local storage.", e)
 
     # Local fallback
     try:
@@ -130,7 +132,7 @@ async def upload_document(
             )
             return {"url": upload_result.get("secure_url")}
         except Exception as e:
-            print(f"Cloudinary document upload failed: {e}. Falling back to local storage.")
+            logger.warning("Cloudinary document upload failed: %s. Falling back to local storage.", e)
 
     # Local fallback
     try:
@@ -203,7 +205,7 @@ async def upload_researcher_document(
             )
             return {"url": upload_result.get("secure_url"), "provider": "cloudinary"}
         except Exception as e:
-            print(f"Cloudinary researcher-doc upload failed: {e}. Falling back to local storage.")
+            logger.warning("Cloudinary researcher-doc upload failed: %s. Falling back to local storage.", e)
 
     # Local fallback
     try:

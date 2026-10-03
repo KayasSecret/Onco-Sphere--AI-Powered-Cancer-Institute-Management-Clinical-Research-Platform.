@@ -23,10 +23,9 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { useForm } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import {
   RiUserLine, RiBookOpenLine, RiMicroscopeLine,
@@ -212,8 +211,6 @@ const DURATIONS = [
   'Ongoing / Permanent',
 ]
 
-const GENDERS = ['Male', 'Female', 'Non-Binary', 'Prefer not to say']
-
 const STEPS = [
   { id: 1, label: 'Identity',   icon: RiUserLine },
   { id: 2, label: 'Academic',   icon: RiBookOpenLine },
@@ -268,7 +265,7 @@ function FormRow({ label, required, children, error }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // File Upload Component
 // ─────────────────────────────────────────────────────────────────────────────
-function DocumentUpload({ label, required, hint, fieldName, value, onChange, onError }) {
+function DocumentUpload({ label, required, hint, value, onChange, onError }) {
   const [uploading, setUploading] = useState(false)
   const [fileName, setFileName]   = useState('')
   const [progress, setProgress]   = useState(0)
@@ -381,7 +378,6 @@ function DocumentUpload({ label, required, hint, fieldName, value, onChange, onE
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ResearcherApplicationPage() {
   const dispatch = useDispatch()
-  const navigate = useNavigate()
   const authStatus = useSelector(selectAuthStatus)
   const authError  = useSelector(selectAuthError)
 
@@ -445,13 +441,6 @@ export default function ResearcherApplicationPage() {
     }
   }, [])
 
-  // ── Auto-save every 60 seconds ────────────────────────────────────────────
-  useEffect(() => {
-    if (!draftId) return
-    const interval = setInterval(() => { autoSave() }, AUTO_SAVE_MS)
-    return () => clearInterval(interval)
-  }, [draftId, step])
-
   // ── Collect all form data for draft / submit ───────────────────────────────
   const collectPayload = useCallback(() => {
     const vals = getValues()
@@ -466,8 +455,15 @@ export default function ResearcherApplicationPage() {
     try {
       await researcherService.updateDraft(draftId, step, collectPayload())
       setLastSaved(new Date())
-    } catch (_) {}
+    } catch {}
   }, [draftId, step, collectPayload, getValues])
+
+  // ── Auto-save every 60 seconds ────────────────────────────────────────────
+  useEffect(() => {
+    if (!draftId) return
+    const interval = setInterval(() => { autoSave() }, AUTO_SAVE_MS)
+    return () => clearInterval(interval)
+  }, [draftId, autoSave])
 
   const handleManualSave = async () => {
     const email = getValues('email')
@@ -484,7 +480,7 @@ export default function ResearcherApplicationPage() {
         localStorage.setItem(DRAFT_ID_KEY, String(res.data.id))
         setLastSaved(new Date())
       }
-    } catch (_) {} finally { setSaveLoading(false) }
+    } catch {} finally { setSaveLoading(false) }
   }
 
   // ── OTP flow ───────────────────────────────────────────────────────────────
@@ -581,7 +577,7 @@ export default function ResearcherApplicationPage() {
             localStorage.setItem(DRAFT_ID_KEY, String(res.data.id))
             setLastSaved(new Date())
           }
-        } catch (_) {}
+        } catch {}
       }
       setStep(s => s + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1318,7 +1314,7 @@ export default function ResearcherApplicationPage() {
       {/* Step pills */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-6 pb-2">
         <div className="flex items-center justify-between sm:justify-center sm:gap-4">
-          {STEPS.map((s, idx) => {
+          {STEPS.map((s) => {
             const done    = completedSteps.has(s.id) || step > s.id
             const active  = step === s.id
             const Icon    = s.icon

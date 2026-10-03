@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import date, datetime
-from pydantic import BaseModel, Field, EmailStr, model_validator
+from pydantic import BaseModel, Field, model_validator
 from app.models.patient import TreatmentStatus
 
 

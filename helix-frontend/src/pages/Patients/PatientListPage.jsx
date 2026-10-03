@@ -33,7 +33,6 @@ export default function PatientListPage() {
 
   const limit = 10
   const isWritable = role === 'SUPER_ADMIN' || role === 'ADMIN'
-  const isSuperAdmin = role === 'SUPER_ADMIN'
 
   useEffect(() => {
     dispatch(fetchPatientsThunk({ page, limit, search }))
@@ -76,6 +75,8 @@ export default function PatientListPage() {
     {
       header: 'Diagnosis / Stage',
       accessor: 'primary_diagnosis',
+      headerClassName: 'hidden sm:table-cell',
+      cellClassName: 'hidden sm:table-cell',
       cell: (row) => (
         <div>
           <p className="text-sm font-medium text-ink-primary truncate max-w-xs">{row.primary_diagnosis}</p>
@@ -91,6 +92,8 @@ export default function PatientListPage() {
     {
       header: 'Assigned Care',
       accessor: 'assigned_doctor',
+      headerClassName: 'hidden md:table-cell',
+      cellClassName: 'hidden md:table-cell',
       cell: (row) => (
         <div>
           <p className="text-xs font-semibold text-ink-primary">{row.assigned_doctor}</p>

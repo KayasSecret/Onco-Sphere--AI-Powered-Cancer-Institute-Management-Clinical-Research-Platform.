@@ -13,7 +13,6 @@ import { Textarea } from '../../components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { Label } from '../../components/ui/label'
 import { toast } from 'sonner'
-import patientService from '../../services/patientService'
 import PhotoSelector from '../../components/PhotoSelector'
 import { cancerHierarchy, cancerCategories } from '../../config/cancerHierarchy'
 import DatePicker from '../../components/DatePicker'
@@ -62,6 +61,7 @@ export default function PatientRegisterPage() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const [activeStep, setActiveStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
     register,
@@ -87,50 +87,13 @@ export default function PatientRegisterPage() {
 
   const formValues = watch()
 
-
-
-  const onSubmit = async (data) => {
-    const formatDate = (val) => {
-      if (!val) return null
-      if (val instanceof Date) {
-        const y = val.getFullYear()
-        const m = String(val.getMonth() + 1).padStart(2, '0')
-        const d = String(val.getDate()).padStart(2, '0')
-        return `${y}-${m}-${d}`
-      }
-      const parsed = new Date(val)
-      if (isNaN(parsed.getTime())) return val
-      const y = parsed.getFullYear()
-      const m = String(parsed.getMonth() + 1).padStart(2, '0')
-      const d = String(parsed.getDate()).padStart(2, '0')
-      return `${y}-${m}-${d}`
-    }
-
-    const formattedData = {
-      ...data,
-      date_of_birth: formatDate(data.date_of_birth),
-      admission_date: formatDate(data.admission_date),
-    }
-
-    try {
-      const newPatient = await dispatch(createPatientThunk(formattedData)).unwrap()
-      toast.success('Patient registered successfully.')
-      if (newPatient && newPatient.id) {
-        navigate(`/patients/${newPatient.id}`)
-      } else {
-        navigate('/patients')
-      }
-    } catch (err) {
-      toast.error(err || 'Failed to register patient.')
-    }
-  }
-
   const STEP_FIELDS = {
     1: ['full_name', 'date_of_birth', 'gender', 'blood_group', 'photo_url'],
     2: ['phone', 'email', 'address', 'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship'],
     3: ['department', 'assigned_doctor', 'cancer_category', 'cancer_type', 'cancer_stage', 'treatment_status'],
   }
 
+  // ── Step navigation ──────────────────────────────────────────────────────────
   const nextStep = async () => {
     const fieldsToValidate = STEP_FIELDS[activeStep]
     if (fieldsToValidate) {
@@ -142,16 +105,59 @@ export default function PatientRegisterPage() {
 
   const prevStep = () => setActiveStep((prev) => Math.max(prev - 1, 1))
 
-  const onError = (formErrors) => {
-    for (let step = 1; step <= 3; step++) {
-      const stepFields = STEP_FIELDS[step]
-      const hasError = stepFields.some((field) => formErrors[field])
-      if (hasError) {
-        setActiveStep(step)
-        break
+  // ── Final submit — called ONLY when user clicks "Register Record" on step 3 ──
+  const handleFinalSubmit = handleSubmit(
+    async (data) => {
+      if (isSubmitting) return          // guard against double-click
+      setIsSubmitting(true)
+
+      const formatDate = (val) => {
+        if (!val) return null
+        if (val instanceof Date) {
+          const y = val.getFullYear()
+          const m = String(val.getMonth() + 1).padStart(2, '0')
+          const d = String(val.getDate()).padStart(2, '0')
+          return `${y}-${m}-${d}`
+        }
+        const parsed = new Date(val)
+        if (isNaN(parsed.getTime())) return val
+        const y = parsed.getFullYear()
+        const m = String(parsed.getMonth() + 1).padStart(2, '0')
+        const d = String(parsed.getDate()).padStart(2, '0')
+        return `${y}-${m}-${d}`
+      }
+
+      const formattedData = {
+        ...data,
+        date_of_birth: formatDate(data.date_of_birth),
+        admission_date: formatDate(data.admission_date),
+      }
+
+      try {
+        const newPatient = await dispatch(createPatientThunk(formattedData)).unwrap()
+        toast.success('Patient registered successfully.')
+        if (newPatient && newPatient.id) {
+          navigate(`/patients/${newPatient.id}`)
+        } else {
+          navigate('/patients')
+        }
+      } catch (err) {
+        toast.error(err || 'Failed to register patient.')
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    // onError: jump to first step that has a validation error
+    (formErrors) => {
+      for (let step = 1; step <= 3; step++) {
+        const stepFields = STEP_FIELDS[step]
+        if (stepFields && stepFields.some((f) => formErrors[f])) {
+          setActiveStep(step)
+          break
+        }
       }
     }
-  }
+  )
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -205,15 +211,26 @@ export default function PatientRegisterPage() {
         ))}
       </div>
 
+      {/*
+        ─────────────────────────────────────────────────────────────────────────
+        IMPORTANT: The <form> element has NO onSubmit handler.
+        Form submission is 100% controlled via the "Register Record" button's
+        onClick which calls handleFinalSubmit() programmatically.
+        This eliminates ALL accidental submissions from:
+          • Enter key in text inputs
+          • SelectTrigger button clicks
+          • Any other DOM event that would normally bubble to form submit
+        ─────────────────────────────────────────────────────────────────────────
+      */}
       <form
-        onSubmit={handleSubmit(onSubmit, onError)}
+        onSubmit={(e) => e.preventDefault()}
         noValidate
         className="space-y-6 bg-surface-card p-6 rounded-lg border border-surface-border"
         onKeyDown={(e) => {
-          // Prevent Enter key from submitting form on intermediate steps
-          if (e.key === 'Enter' && activeStep < 3) {
+          // Block Enter key on ALL steps to prevent any residual submission path
+          if (e.key === 'Enter') {
             e.preventDefault()
-            nextStep()
+            if (activeStep < 3) nextStep()
           }
         }}
       >
@@ -357,7 +374,7 @@ export default function PatientRegisterPage() {
           </div>
         )}
 
-        {/* Step 3: Clinical */}
+        {/* Step 3: Clinical — stays mounted until user clicks "Register Record" */}
         {activeStep === 3 && (
           <div className="space-y-5 animate-fade-in">
             <h3 className="text-sm font-semibold text-brand-navy uppercase tracking-wider">Diagnosis &amp; Clinical Info</h3>
@@ -475,11 +492,15 @@ export default function PatientRegisterPage() {
               Continue
             </Button>
           ) : (
+            /* Final submit button — calls handleFinalSubmit() programmatically.
+               type="button" ensures the HTML form element is NEVER involved. */
             <Button
-              type="submit"
+              type="button"
+              disabled={isSubmitting}
               className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse"
+              onClick={handleFinalSubmit}
             >
-              Register Record
+              {isSubmitting ? 'Registering...' : 'Register Record'}
             </Button>
           )}
         </div>

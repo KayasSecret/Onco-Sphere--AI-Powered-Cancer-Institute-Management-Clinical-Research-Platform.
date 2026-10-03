@@ -20,7 +20,6 @@ from app.schemas.auth import (
 from app.utils.password import hash_password, verify_password
 from app.utils.jwt import create_access_token, create_refresh_token, decode_token, create_reset_token
 from app.services import email_service
-from app.config.settings import settings
 
 
 def _generate_otp(length: int = 6) -> str:

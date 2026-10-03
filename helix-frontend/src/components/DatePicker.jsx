@@ -17,7 +17,7 @@ const CustomDatePicker = forwardRef(({
   isClearable = true,
   className = '',
   ...props
-}, ref) => {
+}, _ref) => {
 
   // Local state to manage Year and Month custom dropdown popups
   const [isYearOpen, setIsYearOpen] = useState(false)

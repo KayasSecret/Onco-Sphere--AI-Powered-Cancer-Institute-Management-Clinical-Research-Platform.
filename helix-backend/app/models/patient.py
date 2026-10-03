@@ -1,5 +1,4 @@
 import enum
-from datetime import datetime, date
 from sqlalchemy import Column, Integer, String, Date, DateTime, Enum as SAEnum, Text
 from sqlalchemy.sql import func
 from app.database.db import Base
@@ -82,5 +81,7 @@ class PatientCancerImage(Base):
     patient_id = Column(Integer, nullable=False)
     title = Column(String(255), nullable=True)
     image_url = Column(String(500), nullable=False)
+    # captured_at: exact timestamp when photo was taken/uploaded (sent from frontend)
+    captured_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

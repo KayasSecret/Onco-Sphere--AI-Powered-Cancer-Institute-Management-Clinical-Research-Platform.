@@ -3,7 +3,6 @@ import PageHeader from '../../components/PageHeader'
 import FormField from '../../components/FormField'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card'
 import { toast } from 'sonner'
 import reportService from '../../services/reportService'
 import patientService from '../../services/patientService'
@@ -56,7 +55,7 @@ export default function ReportSettingsPage() {
         setInstStamp(inst.stamp_url || '')
       }
       setSignatures(res.data.signatures || [])
-    } catch (err) {
+    } catch {
       toast.error('Failed to load institute settings.')
     }
   }
@@ -65,7 +64,7 @@ export default function ReportSettingsPage() {
     try {
       const res = await reportService.getTemplates()
       setTemplates(res.data || [])
-    } catch (err) {
+    } catch {
       toast.error('Failed to load report templates.')
     }
   }
@@ -89,7 +88,7 @@ export default function ReportSettingsPage() {
       })
       toast.success('Institute details updated successfully.')
       fetchSettings()
-    } catch (err) {
+    } catch {
       toast.error('Failed to update institute details.')
     } finally {
       setLoading(false)
@@ -107,7 +106,7 @@ export default function ReportSettingsPage() {
       if (type === 'stamp') setInstStamp(url)
       if (type === 'signature') setNewSigUrl(url)
       toast.success(`${type} uploaded successfully.`, { id: toastId })
-    } catch (err) {
+    } catch {
       toast.error(`Failed to upload ${type}.`, { id: toastId })
     }
   }
@@ -133,7 +132,7 @@ export default function ReportSettingsPage() {
       setNewDoctorName('')
       setNewSigUrl('')
       fetchSettings()
-    } catch (err) {
+    } catch {
       toast.error('Failed to add doctor signature.')
     } finally {
       setLoading(false)

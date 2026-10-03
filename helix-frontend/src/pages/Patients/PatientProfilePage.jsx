@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
@@ -8,7 +8,6 @@ import {
   selectPatientStatus,
 } from '../../redux/slices/patientSlice'
 import { selectUserRole } from '../../redux/slices/authSlice'
-import PageHeader from '../../components/PageHeader'
 import StatusBadge from '../../components/StatusBadge'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
@@ -18,10 +17,7 @@ import { Input } from '../../components/ui/input'
 import {
   RiEditLine,
   RiDeleteBin7Line,
-  RiFlaskLine,
   RiScanLine,
-  RiLineChartLine,
-  RiCalendarLine,
   RiFileTextLine,
   RiDownloadLine,
   RiSearchLine,
@@ -32,11 +28,15 @@ import {
   RiImageLine,
   RiCloseLine,
   RiEyeLine,
+  RiPencilLine,
+  RiCheckLine,
+  RiTimeLine,
 } from 'react-icons/ri'
 import { toast } from 'sonner'
 import patientService from '../../services/patientService'
 import PhotoSelector from '../../components/PhotoSelector'
 import DatePicker from '../../components/DatePicker'
+import PatientVisitsSection from '../../components/visits/PatientVisitsSection'
 
 export default function PatientProfilePage() {
   const { id } = useParams()
@@ -66,6 +66,9 @@ export default function PatientProfilePage() {
   const [imagesSearch, setImagesSearch] = useState('')
   const [imagesStartDate, setImagesStartDate] = useState('')
   const [imagesEndDate, setImagesEndDate] = useState('')
+  // Rename state: which card is being renamed and current text
+  const [renamingImageId, setRenamingImageId] = useState(null)
+  const [renameText, setRenameText] = useState('')
 
   const isWritable = role === 'SUPER_ADMIN' || role === 'ADMIN'
   const isSuperAdmin = role === 'SUPER_ADMIN'
@@ -104,21 +107,49 @@ export default function PatientProfilePage() {
     return true
   })
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     try {
       const res = await patientService.getPatientReports(id)
       setReports(res.data)
     } catch (err) {
       console.error('Failed to load patient reports:', err)
     }
-  }
+  }, [id])
 
-  const loadCancerImages = async () => {
+  const loadCancerImages = useCallback(async () => {
     try {
       const res = await patientService.getPatientCancerImages(id)
       setCancerImages(res.data)
     } catch (err) {
       console.error('Failed to load patient cancer images:', err)
+    }
+  }, [id])
+
+  const handleDeleteCancerImage = async (imageId) => {
+    if (!window.confirm('Are you sure you want to delete this scan image? This cannot be undone.')) return
+    try {
+      await patientService.deleteCancerImage(id, imageId)
+      toast.success('Scan image deleted successfully.')
+      // If lightbox is open for this image, close it
+      if (activeImageModal?.id === imageId) setActiveImageModal(null)
+      loadCancerImages()
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to delete image.')
+    }
+  }
+
+  const handleRenameCancerImage = async (imageId) => {
+    const newTitle = renameText.trim()
+    if (!newTitle) { toast.error('Name cannot be empty.'); return }
+    try {
+      const res = await patientService.renameCancerImage(id, imageId, newTitle)
+      toast.success('Image renamed successfully.')
+      setCancerImages((prev) => prev.map((img) => img.id === imageId ? { ...img, title: res.data.title } : img))
+      if (activeImageModal?.id === imageId) setActiveImageModal((prev) => ({ ...prev, title: res.data.title }))
+      setRenamingImageId(null)
+      setRenameText('')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to rename image.')
     }
   }
 
@@ -193,7 +224,7 @@ export default function PatientProfilePage() {
     dispatch(fetchPatientDetailThunk(id))
     loadReports()
     loadCancerImages()
-  }, [dispatch, id])
+  }, [dispatch, id, loadReports, loadCancerImages])
 
   const handleDeleteRecord = async () => {
     try {
@@ -218,7 +249,7 @@ export default function PatientProfilePage() {
   return (
     <div className="space-y-6">
       {/* Profile Header Block */}
-      <div className="bg-brand-navy text-ink-inverse p-6 rounded-lg shadow-sm flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+      <div className="bg-brand-navy text-ink-inverse p-4 sm:p-6 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center gap-4 relative overflow-hidden">
         {/* Profile Image */}
         <div className="w-20 h-20 rounded-full border-2 border-brand-light overflow-hidden bg-brand-light/20 flex items-center justify-center shrink-0 text-xl font-bold uppercase">
           {patient.photo_url ? (
@@ -229,10 +260,10 @@ export default function PatientProfilePage() {
         </div>
 
         {/* Identity Details */}
-        <div className="flex-1 text-center md:text-left space-y-1.5 min-w-0">
-          <div className="flex flex-col md:flex-row md:items-center gap-2">
+        <div className="flex-1 text-center sm:text-left space-y-1.5 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <h2 className="text-xl font-bold text-white truncate">{patient.full_name}</h2>
-            <div className="flex items-center justify-center md:justify-start gap-2">
+            <div className="flex items-center justify-center sm:justify-start gap-2">
               <span className="text-xs font-semibold font-mono bg-white/10 text-white px-2 py-0.5 rounded">
                 {patient.patient_code}
               </span>
@@ -249,7 +280,7 @@ export default function PatientProfilePage() {
         </div>
 
         {/* Action Controls */}
-        <div className="shrink-0 flex items-center gap-2">
+        <div className="shrink-0 flex items-center gap-2 flex-wrap justify-center sm:justify-start">
           {isWritable && (
             <Button
               className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs flex items-center gap-1.5 h-9"
@@ -280,6 +311,7 @@ export default function PatientProfilePage() {
           <TabsTrigger value="clinical" className="data-[state=active]:bg-brand-blue data-[state=active]:text-ink-inverse text-xs px-4 py-2 font-medium">Clinical Details</TabsTrigger>
           <TabsTrigger value="reports" className="data-[state=active]:bg-brand-blue data-[state=active]:text-ink-inverse text-xs px-4 py-2 font-medium">Reports</TabsTrigger>
           <TabsTrigger value="cancer_images" className="data-[state=active]:bg-brand-blue data-[state=active]:text-ink-inverse text-xs px-4 py-2 font-medium">Cancer Images</TabsTrigger>
+          <TabsTrigger value="visits" className="data-[state=active]:bg-brand-blue data-[state=active]:text-ink-inverse text-xs px-4 py-2 font-medium">Visits</TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Overview */}
@@ -601,15 +633,18 @@ export default function PatientProfilePage() {
                     <PhotoSelector
                       value=""
                       onChange={async (url) => {
+                        // Capture the exact moment of photo selection/capture
+                        const capturedAt = new Date().toISOString()
                         try {
                           await patientService.createPatientCancerImage(id, {
                             title: imageTitle.trim() || 'Clinical Image Scan',
-                            image_url: url
+                            image_url: url,
+                            captured_at: capturedAt,
                           })
                           toast.success('Cancer image added to chart successfully.')
                           setImageTitle('')
                           loadCancerImages()
-                        } catch (err) {
+                        } catch {
                           toast.error('Failed to save cancer image record.')
                         }
                       }}
@@ -728,27 +763,93 @@ export default function PatientProfilePage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {filteredCancerImages.map((img) => (
-                    <div
-                      key={img.id}
-                      className="group relative border border-surface-border rounded-lg overflow-hidden bg-surface-base hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => setActiveImageModal(img)}
-                    >
-                      <div className="aspect-square w-full overflow-hidden bg-black flex items-center justify-center">
-                        <img
-                          src={img.image_url}
-                          alt={img.title || 'Cancer Scan'}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
+                  {filteredCancerImages.map((img) => {
+                    const displayTime = img.captured_at || img.created_at
+                    const isRenaming = renamingImageId === img.id
+                    return (
+                      <div
+                        key={img.id}
+                        className="group relative border border-surface-border rounded-lg overflow-hidden bg-surface-base hover:shadow-md transition-shadow"
+                      >
+                        {/* Image thumbnail — click to open lightbox */}
+                        <div
+                          className="aspect-square w-full overflow-hidden bg-black flex items-center justify-center cursor-pointer"
+                          onClick={() => { if (!isRenaming) setActiveImageModal(img) }}
+                        >
+                          <img
+                            src={img.image_url}
+                            alt={img.title || 'Cancer Scan'}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+
+                        {/* Card Footer */}
+                        <div className="p-2.5 space-y-1">
+                          {/* Title / Rename Row */}
+                          {isRenaming ? (
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                autoFocus
+                                value={renameText}
+                                onChange={(e) => setRenameText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleRenameCancerImage(img.id)
+                                  if (e.key === 'Escape') { setRenamingImageId(null); setRenameText('') }
+                                }}
+                                className="flex-1 min-w-0 text-xs border border-brand-blue rounded px-1.5 py-0.5 bg-surface-card text-ink-primary outline-none focus:ring-1 focus:ring-brand-blue"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleRenameCancerImage(img.id)}
+                                className="p-0.5 text-brand-blue hover:text-brand-blue-dark shrink-0"
+                                title="Confirm rename"
+                              >
+                                <RiCheckLine size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setRenamingImageId(null); setRenameText('') }}
+                                className="p-0.5 text-ink-secondary hover:text-status-critical shrink-0"
+                                title="Cancel"
+                              >
+                                <RiCloseLine size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-xs font-semibold text-ink-primary truncate">{img.title || 'Clinical Image'}</p>
+                          )}
+
+                          {/* Date + Time */}
+                          <div className="flex items-center gap-1 text-[10px] text-ink-disabled">
+                            <RiTimeLine size={10} className="shrink-0" />
+                            <span>{new Date(displayTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                          </div>
+
+                          {/* Action Buttons (writable roles only) */}
+                          {isWritable && !isRenaming && (
+                            <div className="flex items-center gap-1 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => { setRenamingImageId(img.id); setRenameText(img.title || '') }}
+                                className="flex-1 flex items-center justify-center gap-0.5 text-[10px] text-ink-secondary hover:text-brand-blue hover:bg-surface-hover rounded py-0.5 transition-colors"
+                                title="Rename"
+                              >
+                                <RiPencilLine size={11} /> Rename
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCancerImage(img.id)}
+                                className="flex-1 flex items-center justify-center gap-0.5 text-[10px] text-ink-secondary hover:text-status-critical hover:bg-status-critical-bg rounded py-0.5 transition-colors"
+                                title="Delete"
+                              >
+                                <RiDeleteBin7Line size={11} /> Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="p-3">
-                        <p className="text-xs font-semibold text-ink-primary truncate">{img.title || 'Clinical Image'}</p>
-                        <p className="text-[10px] text-ink-disabled mt-0.5">
-                          {new Date(img.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
@@ -758,15 +859,22 @@ export default function PatientProfilePage() {
           {activeImageModal && (
             <div
               className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4"
-              onClick={() => setActiveImageModal(null)}
+              onClick={() => { setActiveImageModal(null); setRenamingImageId(null); setRenameText('') }}
             >
-              <div className="relative max-w-3xl w-full max-h-[85vh] bg-surface-card rounded-lg overflow-hidden border border-surface-border flex flex-col" onClick={e => e.stopPropagation()}>
+              <div
+                className="relative max-w-3xl w-full max-h-[90vh] bg-surface-card rounded-lg overflow-hidden border border-surface-border flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Close */}
                 <button
-                  onClick={() => setActiveImageModal(null)}
+                  type="button"
+                  onClick={() => { setActiveImageModal(null); setRenamingImageId(null); setRenameText('') }}
                   className="absolute right-3 top-3 text-white bg-black/50 hover:bg-black/80 p-1.5 rounded-full transition-colors z-10"
                 >
                   <RiCloseLine size={20} />
                 </button>
+
+                {/* Image */}
                 <div className="flex-1 bg-black flex items-center justify-center overflow-hidden p-6 min-h-[350px]">
                   <img
                     src={activeImageModal.image_url}
@@ -774,25 +882,88 @@ export default function PatientProfilePage() {
                     className="max-w-full max-h-full object-contain"
                   />
                 </div>
-                <div className="p-4 bg-surface-card border-t border-surface-border flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-semibold text-ink-primary">{activeImageModal.title || 'Clinical Image'}</h4>
-                    <p className="text-xs text-ink-secondary mt-0.5">
-                      Uploaded on {new Date(activeImageModal.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                  <a
-                    href={activeImageModal.image_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs px-3 py-1.5 rounded-md font-semibold transition-colors"
-                  >
-                    <RiDownloadLine size={14} /> Full Resolution
-                  </a>
+
+                {/* Footer info bar */}
+                <div className="p-4 bg-surface-card border-t border-surface-border space-y-3">
+                  {/* Title + rename */}
+                  {renamingImageId === activeImageModal.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        autoFocus
+                        value={renameText}
+                        onChange={(e) => setRenameText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleRenameCancerImage(activeImageModal.id)
+                          if (e.key === 'Escape') { setRenamingImageId(null); setRenameText('') }
+                        }}
+                        className="flex-1 text-sm border border-brand-blue rounded px-2 py-1 bg-surface-card text-ink-primary outline-none focus:ring-2 focus:ring-brand-blue"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRenameCancerImage(activeImageModal.id)}
+                        className="flex items-center gap-1 bg-brand-blue hover:bg-brand-blue-dark text-white text-xs px-3 py-1.5 rounded font-semibold"
+                      >
+                        <RiCheckLine size={13} /> Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setRenamingImageId(null); setRenameText('') }}
+                        className="text-xs text-ink-secondary hover:text-status-critical px-2 py-1.5"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-ink-primary">{activeImageModal.title || 'Clinical Image'}</h4>
+                        <div className="flex items-center gap-1 text-xs text-ink-secondary mt-1">
+                          <RiTimeLine size={12} />
+                          <span>
+                            Captured: {new Date(activeImageModal.captured_at || activeImageModal.created_at).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'medium' })}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {isWritable && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => { setRenamingImageId(activeImageModal.id); setRenameText(activeImageModal.title || '') }}
+                              className="flex items-center gap-1 text-xs text-ink-secondary hover:text-brand-blue border border-surface-border hover:border-brand-blue px-2.5 py-1.5 rounded-md transition-colors"
+                            >
+                              <RiPencilLine size={13} /> Rename
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCancerImage(activeImageModal.id)}
+                              className="flex items-center gap-1 text-xs text-status-critical border border-status-critical/30 hover:bg-status-critical-bg px-2.5 py-1.5 rounded-md transition-colors"
+                            >
+                              <RiDeleteBin7Line size={13} /> Delete
+                            </button>
+                          </>
+                        )}
+                        <a
+                          href={activeImageModal.image_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs px-3 py-1.5 rounded-md font-semibold transition-colors"
+                        >
+                          <RiDownloadLine size={14} /> Full Resolution
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
+        </TabsContent>
+
+        {/* Tab 5: Patient Clinical Visits */}
+        <TabsContent value="visits" className="space-y-4 outline-none">
+          <PatientVisitsSection patient={patient} patientId={id} isWritable={isWritable} />
         </TabsContent>
       </Tabs>
 

@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { selectUser } from '../../redux/slices/authSlice'
 import PageHeader from '../../components/PageHeader'
 import DataTable from '../../components/DataTable'
-import FormField from '../../components/FormField'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog'
@@ -49,11 +48,7 @@ export default function ReportHistoryPage() {
   const [deleteId, setDeleteId] = useState(null)
   const [deleteNum, setDeleteNum] = useState('')
 
-  useEffect(() => {
-    fetchReports()
-  }, [page, search])
-
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     setLoading(true)
     try {
       const res = await reportService.listReports({
@@ -74,12 +69,16 @@ export default function ReportHistoryPage() {
       
       setReports(Object.values(grouped))
       setTotal(res.data.total || 0)
-    } catch (err) {
+    } catch {
       toast.error('Failed to retrieve reports history.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, search, limit])
+
+  useEffect(() => {
+    fetchReports()
+  }, [fetchReports])
 
   const handleSearchSubmit = (e) => {
     e.preventDefault()
@@ -94,7 +93,7 @@ export default function ReportHistoryPage() {
       const res = await reportService.getReportHistory(reportNumber)
       setHistoryLogs(res.data || [])
       setHistoryOpen(true)
-    } catch (err) {
+    } catch {
       toast.error('Failed to load audit logs.')
     } finally {
       setLoading(false)
@@ -108,7 +107,7 @@ export default function ReportHistoryPage() {
       const res = await reportService.getReportVersions(reportNumber)
       setVersionsList(res.data || [])
       setVersionsOpen(true)
-    } catch (err) {
+    } catch {
       toast.error('Failed to load report versions.')
     } finally {
       setLoading(false)
@@ -127,7 +126,7 @@ export default function ReportHistoryPage() {
       await reportService.deleteReport(deleteId)
       toast.success('Report deleted successfully.')
       fetchReports()
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete report.')
     } finally {
       setDeleteOpen(false)
@@ -173,14 +172,20 @@ export default function ReportHistoryPage() {
     },
     {
       header: 'Report Date',
+      headerClassName: 'hidden sm:table-cell',
+      cellClassName: 'hidden sm:table-cell',
       cell: (row) => <span className="text-ink-secondary text-xs">{row.report_date}</span>,
     },
     {
       header: 'Authorizing Doctor',
+      headerClassName: 'hidden md:table-cell',
+      cellClassName: 'hidden md:table-cell',
       cell: (row) => <span className="text-ink-primary text-xs font-medium">{row.doctor_name}</span>,
     },
     {
       header: 'Status',
+      headerClassName: 'hidden sm:table-cell',
+      cellClassName: 'hidden sm:table-cell',
       cell: (row) => (
         <span className={['px-2 py-0.5 border text-[10px] font-bold rounded uppercase tracking-wide', getStatusStyle(row.status)].join(' ')}>
           {row.status}
@@ -212,7 +217,25 @@ export default function ReportHistoryPage() {
             <RiEyeLine size={16} />
           </Button>
 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-7 h-7 text-ink-secondary hover:text-brand-blue"
+            onClick={() => handleViewVersions(row.report_number)}
+            title="Version History"
+          >
+            <RiHistoryLine size={16} />
+          </Button>
 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-7 h-7 text-ink-secondary hover:text-brand-blue"
+            onClick={() => handleViewAuditHistory(row.report_number)}
+            title="Audit Trail"
+          >
+            <RiFileList2Line size={16} />
+          </Button>
 
           {isSuperAdmin && (
             <Button
@@ -241,22 +264,22 @@ export default function ReportHistoryPage() {
       />
 
       {/* Control Row */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border border-surface-border bg-surface-card rounded-xl">
-        <form onSubmit={handleSearchSubmit} className="relative w-full sm:max-w-md">
-          <RiSearchLine className="absolute left-3 top-3 text-ink-secondary" size={16} />
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 p-4 border border-surface-border bg-surface-card rounded-xl">
+        <form onSubmit={handleSearchSubmit} className="relative w-full sm:max-w-xs">
+          <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-secondary" size={16} />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by patient name, patient code, or report number..."
-            className="pl-9 pr-4 bg-surface-base border-surface-border h-9"
+            className="pl-9 pr-4 bg-surface-base border-surface-border h-9 w-full"
           />
         </form>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
           <Button
             onClick={() => navigate('/reports/settings')}
             variant="outline"
-            className="border-surface-border text-ink-primary hover:bg-surface-hover text-xs flex items-center gap-1.5 h-9"
+            className="w-full sm:w-auto justify-center border-surface-border text-ink-primary hover:bg-surface-hover text-xs flex items-center gap-1.5 h-9"
           >
             <RiSettingsLine size={15} />
             Branding & Parameters
@@ -264,7 +287,7 @@ export default function ReportHistoryPage() {
           
           <Button
             onClick={() => navigate('/reports/new')}
-            className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs flex items-center gap-1 font-bold h-9"
+            className="w-full sm:w-auto justify-center bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs flex items-center gap-1 font-bold h-9"
           >
             <RiAddLine size={16} />
             New Pathology Report
@@ -291,7 +314,7 @@ export default function ReportHistoryPage() {
 
       {/* MODAL 1: Audit Log History */}
       <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
-        <DialogContent className="sm:max-w-lg bg-surface-card border border-surface-border">
+        <DialogContent className="w-[95vw] sm:max-w-lg bg-surface-card border border-surface-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-ink-primary font-bold text-base flex items-center gap-2">
               <RiFileList2Line className="text-brand-blue" />
@@ -331,7 +354,7 @@ export default function ReportHistoryPage() {
 
       {/* MODAL 2: Report Versions list */}
       <Dialog open={versionsOpen} onOpenChange={setVersionsOpen}>
-        <DialogContent className="sm:max-w-lg bg-surface-card border border-surface-border">
+        <DialogContent className="w-[95vw] sm:max-w-lg bg-surface-card border border-surface-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-ink-primary font-bold text-base flex items-center gap-2">
               <RiHistoryLine className="text-brand-blue" />
@@ -343,7 +366,7 @@ export default function ReportHistoryPage() {
             {versionsList.map((ver) => (
               <div
                 key={ver.id}
-                className="flex items-center justify-between p-3.5 border border-surface-border bg-surface-base/10 rounded-lg"
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 border border-surface-border bg-surface-base/10 rounded-lg gap-3"
               >
                 <div>
                   <p className="text-xs font-bold text-ink-primary">Version {ver.version}</p>
@@ -354,7 +377,7 @@ export default function ReportHistoryPage() {
                     {ver.status}
                   </span>
                 </div>
-                <div className="flex gap-1 shrink-0">
+                <div className="flex gap-1.5 self-end sm:self-auto shrink-0">
                   <Button
                     onClick={() => {
                       setVersionsOpen(false)

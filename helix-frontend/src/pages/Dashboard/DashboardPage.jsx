@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
-import { selectUser } from '../../redux/slices/authSlice'
 import {
   RiUserHeartLine,
   RiCalendarCheckLine,
@@ -47,7 +45,6 @@ function StatCard({ title, value, icon: Icon, color, loading }) {
 
 // ── Dashboard Page ────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const user = useSelector(selectUser)
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 

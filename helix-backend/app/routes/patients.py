@@ -305,6 +305,7 @@ class CancerImageResponse(BaseModel):
     patient_id: int
     title: Optional[str] = None
     image_url: str
+    captured_at: Optional[datetime] = None
     created_at: datetime
 
     class Config:
@@ -361,6 +362,7 @@ def list_patient_cancer_images(
 class CancerImageCreate(BaseModel):
     title: Optional[str] = None
     image_url: str
+    captured_at: Optional[datetime] = None  # exact capture/upload timestamp from frontend
 
 @router.post("/{patient_id}/cancer-images", response_model=CancerImageResponse, status_code=status.HTTP_201_CREATED)
 def create_patient_cancer_image(
@@ -377,7 +379,8 @@ def create_patient_cancer_image(
     new_img = PatientCancerImage(
         patient_id=patient_id,
         title=payload.title,
-        image_url=payload.image_url
+        image_url=payload.image_url,
+        captured_at=payload.captured_at or datetime.utcnow(),
     )
     db.add(new_img)
     db.commit()
@@ -404,3 +407,47 @@ def delete_patient_report(
     db.commit()
     return None
 
+
+# ── Cancer Image: Delete ──────────────────────────────────────────────────────
+@router.delete("/{patient_id}/cancer-images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_patient_cancer_image(
+    patient_id: int,
+    image_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+):
+    """Delete a cancer image record for a patient."""
+    img = db.query(PatientCancerImage).filter(
+        PatientCancerImage.id == image_id,
+        PatientCancerImage.patient_id == patient_id,
+    ).first()
+    if not img:
+        raise HTTPException(status_code=404, detail="Cancer image not found.")
+    db.delete(img)
+    db.commit()
+    return None
+
+
+# ── Cancer Image: Rename (PATCH title only) ────────────────────────────────────
+class CancerImageRename(BaseModel):
+    title: str
+
+@router.patch("/{patient_id}/cancer-images/{image_id}", response_model=CancerImageResponse)
+def rename_patient_cancer_image(
+    patient_id: int,
+    image_id: int,
+    payload: CancerImageRename,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_roles([UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+):
+    """Rename the title/label of a cancer image."""
+    img = db.query(PatientCancerImage).filter(
+        PatientCancerImage.id == image_id,
+        PatientCancerImage.patient_id == patient_id,
+    ).first()
+    if not img:
+        raise HTTPException(status_code=404, detail="Cancer image not found.")
+    img.title = payload.title.strip() or img.title
+    db.commit()
+    db.refresh(img)
+    return img

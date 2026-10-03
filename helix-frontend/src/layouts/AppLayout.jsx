@@ -9,7 +9,6 @@ import {
   RiLogoutBoxLine,
   RiMenuLine,
   RiCloseLine,
-  RiTestTubeLine,
   RiFileTextLine,
 } from 'react-icons/ri'
 import ICSRLogo from '../assets/ICSR-LOGO.png'
@@ -52,7 +51,7 @@ const NAV_ITEMS = [
 ]
 
 // ── Logo mark SVG ──────────────────────────────────────────────────────────
-function HelixLogo({ collapsed }) {
+function HelixLogo() {
   return (
     <div className="flex items-center gap-3 px-4 h-16 shrink-0">
       {/* Logo image — always visible */}
@@ -66,12 +65,13 @@ function HelixLogo({ collapsed }) {
 }
 
 // ── Single nav item ────────────────────────────────────────────────────────
-function NavItem({ item, collapsed }) {
+function NavItem({ item, collapsed, onNavigate }) {
   const Icon = item.icon
 
   return (
     <NavLink
       to={item.to}
+      onClick={onNavigate}
       title={collapsed ? item.label : undefined}
       className={({ isActive }) =>
         [
@@ -110,7 +110,7 @@ function NavItem({ item, collapsed }) {
 }
 
 // ── Sidebar content (shared between desktop + mobile Sheet) ───────────────
-function SidebarContent({ collapsed, onClose, user, filteredNav, onLogout }) {
+function SidebarContent({ collapsed, onClose, user, filteredNav, onLogout, onNavigate }) {
   const [avatarPopoverOpen, setAvatarPopoverOpen] = useState(false)
   const popoverRef = useRef(null)
 
@@ -141,7 +141,7 @@ function SidebarContent({ collapsed, onClose, user, filteredNav, onLogout }) {
     >
       {/* Header — logo + close button */}
       <div className="flex items-center justify-between shrink-0">
-        <HelixLogo collapsed={collapsed} />
+        <HelixLogo />
         {!collapsed && (
           <button
             onClick={onClose}
@@ -159,7 +159,7 @@ function SidebarContent({ collapsed, onClose, user, filteredNav, onLogout }) {
       {/* Navigation */}
       <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden space-y-0.5">
         {filteredNav.map((item) => (
-          <NavItem key={item.to} item={item} collapsed={collapsed} />
+          <NavItem key={item.to} item={item} collapsed={collapsed} onNavigate={onNavigate} />
         ))}
       </nav>
 
@@ -290,10 +290,11 @@ export default function AppLayout() {
 
       {/* ── Mobile Sidebar (Sheet) ───────────────────────────────────── */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="p-0 w-60 border-0">
+        <SheetContent side="left" className="p-0 w-60 border-0" hideClose>
           <SidebarContent
             collapsed={false}
             onClose={() => setMobileOpen(false)}
+            onNavigate={() => setMobileOpen(false)}
             user={user}
             filteredNav={filteredNav}
             onLogout={handleLogout}
@@ -326,10 +327,11 @@ export default function AppLayout() {
             </button>
 
             {/* Platform Title */}
-            <div className="flex items-center gap-2.5 truncate">
-              <span className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2.5">
-                <span className="text-ink-primary font-extrabold font-sans whitespace-nowrap">
-                  Onco Sphere Oncology Intelligence Platform
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="text-base sm:text-lg md:text-xl font-bold tracking-tight">
+                <span className="text-ink-primary font-extrabold font-sans">
+                  <span className="hidden md:inline">Onco Sphere Oncology Intelligence Platform</span>
+                  <span className="md:hidden">Onco Sphere</span>
                 </span>
               </span>
             </div>
@@ -353,7 +355,7 @@ export default function AppLayout() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
           <Outlet />
         </main>
       </div>

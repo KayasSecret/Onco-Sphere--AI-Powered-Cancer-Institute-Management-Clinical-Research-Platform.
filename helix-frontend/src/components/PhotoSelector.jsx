@@ -1,8 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { RiCameraLine, RiUploadCloud2Line, RiZoomInLine, RiRefreshLine, RiCheckLine } from 'react-icons/ri'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { Button } from './ui/button'
-import { Input } from './ui/input'
 import { toast } from 'sonner'
 import patientService from '../services/patientService'
 
@@ -56,7 +55,7 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
       })
       setCameraStream(stream)
       setMode('camera')
-    } catch (err) {
+    } catch {
       toast.error('Could not access camera. Please check permissions.')
     }
   }
@@ -174,7 +173,7 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
           onChange(res.data.url)
           toast.success('Photo uploaded successfully.')
           closeModal()
-        } catch (err) {
+        } catch {
           toast.error('Failed to upload cropped image.')
         } finally {
           setUploading(false)

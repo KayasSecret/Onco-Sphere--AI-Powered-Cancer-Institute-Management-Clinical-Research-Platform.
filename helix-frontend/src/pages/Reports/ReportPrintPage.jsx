@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import reportService from '../../services/reportService'
 import { jsPDF } from 'jspdf'
@@ -21,11 +21,14 @@ export default function ReportPrintPage() {
   const [instSettings, setInstSettings] = useState(null)
   const [signatures, setSignatures] = useState([])
 
-  useEffect(() => {
-    loadPrintData()
+  const triggerSystemPrint = useCallback(async () => {
+    try {
+      await reportService.logPrint(id)
+    } catch {}
+    window.print()
   }, [id])
 
-  const loadPrintData = async () => {
+  const loadPrintData = useCallback(async () => {
     setLoading(true)
     try {
       // 1. Get Report Details
@@ -43,19 +46,16 @@ export default function ReportPrintPage() {
           triggerSystemPrint()
         }, 800)
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to load report data for printing.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, autoPrint, triggerSystemPrint])
 
-  const triggerSystemPrint = async () => {
-    try {
-      await reportService.logPrint(id)
-    } catch {}
-    window.print()
-  }
+  useEffect(() => {
+    loadPrintData()
+  }, [loadPrintData])
 
   const handleDownloadPDF = async () => {
     const element = printAreaRef.current
@@ -101,7 +101,7 @@ export default function ReportPrintPage() {
         await reportService.logPrint(id)
       } catch {}
       toast.success('PDF download completed.', { id: toastId })
-    } catch (err) {
+    } catch {
       toast.error('Failed to generate PDF file.', { id: toastId })
     }
   }

@@ -87,7 +87,7 @@ export const getMeThunk = createAsyncThunk(
 
 export const logoutThunk = createAsyncThunk(
   'auth/logout',
-  async (_, { rejectWithValue }) => {
+  async () => {
     try {
       await authService.logout()
     } catch {

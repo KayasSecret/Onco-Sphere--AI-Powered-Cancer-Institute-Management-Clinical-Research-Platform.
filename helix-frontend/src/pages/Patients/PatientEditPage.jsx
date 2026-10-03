@@ -18,7 +18,6 @@ import { Textarea } from '../../components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { Label } from '../../components/ui/label'
 import { toast } from 'sonner'
-import patientService from '../../services/patientService'
 import PhotoSelector from '../../components/PhotoSelector'
 import { cancerHierarchy, cancerCategories } from '../../config/cancerHierarchy'
 import DatePicker from '../../components/DatePicker'
@@ -70,6 +69,7 @@ export default function PatientEditPage() {
   const patient = useSelector(selectSelectedPatient)
   const status = useSelector(selectPatientStatus)
   const [activeStep, setActiveStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
     register,
@@ -92,7 +92,6 @@ export default function PatientEditPage() {
 
   useEffect(() => {
     if (patient) {
-      // Parse dates safely for form fields
       reset({
         ...patient,
         date_of_birth: patient.date_of_birth ? patient.date_of_birth.split('T')[0] : '',
@@ -103,55 +102,13 @@ export default function PatientEditPage() {
 
   const formValues = watch()
 
-
-
-  const onSubmit = async (data) => {
-    const formatDate = (val) => {
-      if (!val || val === '') return null
-      if (val instanceof Date) {
-        const y = val.getFullYear()
-        const m = String(val.getMonth() + 1).padStart(2, '0')
-        const d = String(val.getDate()).padStart(2, '0')
-        return `${y}-${m}-${d}`
-      }
-      return val
-    }
-
-    // Exclude read-only metadata fields from update payload
-    const { id: _id, patient_code: _code, created_at: _ca, updated_at: _ua, ...cleanData } = data
-
-    const formattedData = {
-      ...cleanData,
-      date_of_birth: formatDate(cleanData.date_of_birth),
-      admission_date: formatDate(cleanData.admission_date),
-      discharge_date: formatDate(cleanData.discharge_date),
-      email: cleanData.email && cleanData.email.trim() !== '' ? cleanData.email.trim() : null,
-      phone: cleanData.phone ? cleanData.phone.trim() : '',
-      blood_group: cleanData.blood_group || '',
-      photo_url: cleanData.photo_url || '',
-      // Emergency contact: send empty string instead of null (DB column is NOT NULL)
-      emergency_contact_name: cleanData.emergency_contact_name || '',
-      emergency_contact_phone: cleanData.emergency_contact_phone || '',
-      emergency_contact_relationship: cleanData.emergency_contact_relationship || '',
-      medical_notes: cleanData.medical_notes || '',
-      remarks: cleanData.remarks || '',
-    }
-
-    try {
-      await dispatch(updatePatientThunk({ id, data: formattedData })).unwrap()
-      toast.success('Patient record updated successfully.')
-      navigate(`/patients/${id}`)
-    } catch (err) {
-      toast.error(typeof err === 'string' ? err : 'Failed to update patient record.')
-    }
-  }
-
   const STEP_FIELDS = {
     1: ['full_name', 'date_of_birth', 'gender', 'blood_group', 'photo_url'],
     2: ['phone', 'email', 'address', 'emergency_contact_name', 'emergency_contact_phone', 'emergency_contact_relationship'],
     3: ['department', 'assigned_doctor', 'cancer_category', 'cancer_type', 'cancer_stage', 'treatment_status'],
   }
 
+  // ── Step navigation ──────────────────────────────────────────────────────────
   const nextStep = async () => {
     const fieldsToValidate = STEP_FIELDS[activeStep]
     if (fieldsToValidate) {
@@ -163,18 +120,64 @@ export default function PatientEditPage() {
 
   const prevStep = () => setActiveStep((prev) => Math.max(prev - 1, 1))
 
-  const onError = (formErrors) => {
-    for (let step = 1; step <= 3; step++) {
-      const stepFields = STEP_FIELDS[step]
-      if (stepFields) {
-        const hasError = stepFields.some((field) => formErrors[field])
-        if (hasError) {
+  // ── Final submit — called ONLY when user clicks "Save Record Changes" on step 3 ──
+  const handleFinalSubmit = handleSubmit(
+    async (data) => {
+      if (isSubmitting) return          // guard against double-click
+      setIsSubmitting(true)
+
+      const formatDate = (val) => {
+        if (!val || val === '') return null
+        if (val instanceof Date) {
+          const y = val.getFullYear()
+          const m = String(val.getMonth() + 1).padStart(2, '0')
+          const d = String(val.getDate()).padStart(2, '0')
+          return `${y}-${m}-${d}`
+        }
+        return val
+      }
+
+      // Exclude read-only metadata fields from update payload
+      const { id: _id, patient_code: _code, created_at: _ca, updated_at: _ua, ...cleanData } = data
+
+      const formattedData = {
+        ...cleanData,
+        date_of_birth: formatDate(cleanData.date_of_birth),
+        admission_date: formatDate(cleanData.admission_date),
+        discharge_date: formatDate(cleanData.discharge_date),
+        email: cleanData.email && cleanData.email.trim() !== '' ? cleanData.email.trim() : null,
+        phone: cleanData.phone ? cleanData.phone.trim() : '',
+        blood_group: cleanData.blood_group || '',
+        photo_url: cleanData.photo_url || '',
+        // Emergency contact: send empty string instead of null (DB column is NOT NULL)
+        emergency_contact_name: cleanData.emergency_contact_name || '',
+        emergency_contact_phone: cleanData.emergency_contact_phone || '',
+        emergency_contact_relationship: cleanData.emergency_contact_relationship || '',
+        medical_notes: cleanData.medical_notes || '',
+        remarks: cleanData.remarks || '',
+      }
+
+      try {
+        await dispatch(updatePatientThunk({ id, data: formattedData })).unwrap()
+        toast.success('Patient record updated successfully.')
+        navigate(`/patients/${id}`)
+      } catch (err) {
+        toast.error(typeof err === 'string' ? err : 'Failed to update patient record.')
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    // onError: jump to first step that has a validation error
+    (formErrors) => {
+      for (let step = 1; step <= 3; step++) {
+        const stepFields = STEP_FIELDS[step]
+        if (stepFields && stepFields.some((f) => formErrors[f])) {
           setActiveStep(step)
           break
         }
       }
     }
-  }
+  )
 
   if (status === 'loading' && !patient) {
     return <div className="text-center py-12 text-ink-secondary">Loading patient profile...</div>
@@ -198,40 +201,64 @@ export default function PatientEditPage() {
           { step: 2, label: 'Contact' },
           { step: 3, label: 'Clinical' },
         ].map((item) => (
-          <div
+          <button
+            type="button"
             key={item.step}
+            onClick={async () => {
+              if (item.step < activeStep) {
+                setActiveStep(item.step)
+              } else if (item.step > activeStep) {
+                const fieldsToValidate = STEP_FIELDS[activeStep]
+                if (fieldsToValidate) {
+                  const isValid = await trigger(fieldsToValidate)
+                  if (isValid) setActiveStep(item.step)
+                }
+              }
+            }}
             className={[
-              'flex items-center gap-2 pb-2 border-b-2',
+              'flex items-center gap-2 pb-2 border-b-2 transition-all cursor-pointer',
               activeStep === item.step
-                ? 'border-brand-blue text-brand-blue'
-                : 'border-transparent text-ink-secondary',
+                ? 'border-brand-blue text-brand-blue font-bold'
+                : 'border-transparent text-ink-secondary hover:text-ink-primary',
             ].join(' ')}
           >
             <span
               className={[
                 'w-5 h-5 rounded-full flex items-center justify-center text-[10px]',
-                activeStep === item.step ? 'bg-brand-blue text-ink-inverse' : 'bg-surface-hover text-ink-secondary',
+                activeStep === item.step ? 'bg-brand-blue text-ink-inverse font-bold' : 'bg-surface-hover text-ink-secondary',
               ].join(' ')}
             >
               {item.step}
             </span>
             {item.label}
-          </div>
+          </button>
         ))}
       </div>
 
+      {/*
+        ─────────────────────────────────────────────────────────────────────────
+        IMPORTANT: The <form> element has NO onSubmit handler.
+        Form submission is 100% controlled via the "Save Record Changes" button's
+        onClick which calls handleFinalSubmit() programmatically.
+        This eliminates ALL accidental submissions from:
+          • Enter key in text inputs
+          • SelectTrigger button clicks
+          • Any other DOM event that would normally bubble to form submit
+        ─────────────────────────────────────────────────────────────────────────
+      */}
       <form
-        onSubmit={handleSubmit(onSubmit, onError)}
+        onSubmit={(e) => e.preventDefault()}
         noValidate
         className="space-y-6 bg-surface-card p-6 rounded-lg border border-surface-border"
         onKeyDown={(e) => {
-          // Prevent Enter key from submitting form on intermediate steps
-          if (e.key === 'Enter' && activeStep < 3) {
+          // Block Enter key on ALL steps to prevent any residual submission path
+          if (e.key === 'Enter') {
             e.preventDefault()
-            nextStep()
+            if (activeStep < 3) nextStep()
           }
         }}
       >
+        {/* Step 1: Identity */}
         {activeStep === 1 && (
           <div className="space-y-5 animate-fade-in">
             <h3 className="text-sm font-semibold text-brand-navy uppercase tracking-wider">Demographics &amp; Identity</h3>
@@ -300,6 +327,7 @@ export default function PatientEditPage() {
           </div>
         )}
 
+        {/* Step 2: Contact */}
         {activeStep === 2 && (
           <div className="space-y-5 animate-fade-in">
             <h3 className="text-sm font-semibold text-brand-navy uppercase tracking-wider">Contact details</h3>
@@ -355,6 +383,7 @@ export default function PatientEditPage() {
           </div>
         )}
 
+        {/* Step 3: Clinical — stays mounted until user clicks "Save Record Changes" */}
         {activeStep === 3 && (
           <div className="space-y-5 animate-fade-in">
             <h3 className="text-sm font-semibold text-brand-navy uppercase tracking-wider">Diagnosis &amp; Clinical Info</h3>
@@ -451,6 +480,7 @@ export default function PatientEditPage() {
           </div>
         )}
 
+        {/* Form Wizard Navigation Footer */}
         <div className="flex items-center justify-between border-t border-surface-border pt-4">
           <Button
             type="button"
@@ -471,11 +501,15 @@ export default function PatientEditPage() {
               Continue
             </Button>
           ) : (
+            /* Final submit button — calls handleFinalSubmit() programmatically.
+               type="button" ensures the HTML form element is NEVER involved. */
             <Button
-              type="submit"
+              type="button"
+              disabled={isSubmitting}
               className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse"
+              onClick={handleFinalSubmit}
             >
-              Save Record Changes
+              {isSubmitting ? 'Saving...' : 'Save Record Changes'}
             </Button>
           )}
         </div>

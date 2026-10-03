@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import axios from 'axios'
 import api from '../../services/axiosInstance'
 import { selectUser, selectUserRole, updateUserProfile } from '../../redux/slices/authSlice'
 import PageHeader from '../../components/PageHeader'
@@ -71,7 +70,6 @@ export default function SettingsPage() {
 
   // Cloudinary State
   const [cloudinaryStatus, setCloudinaryStatus] = useState(null)
-  const [loadingCloudinary, setLoadingCloudinary] = useState(false)
   const [loadingPassword, setLoadingPassword] = useState(false)
 
   // Show/Hide Password states
@@ -232,7 +230,7 @@ export default function SettingsPage() {
       <div className="flex flex-col md:flex-row min-h-[550px] border border-surface-border bg-surface-card rounded-xl overflow-hidden shadow-xs">
         
         {/* Settings Left Sub-Navigation Sidebar */}
-        <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-surface-border bg-surface-base/30 p-4 space-y-1.5 shrink-0 flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible">
+        <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-surface-border bg-surface-base/30 p-3 sm:p-4 gap-1.5 md:gap-0 md:space-y-1.5 shrink-0 flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible">
           {[
             { id: 'account', label: 'Account Overview', icon: RiUserLine },
             { id: 'appearance', label: 'Appearance', icon: RiPaletteLine },
@@ -248,7 +246,7 @@ export default function SettingsPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={[
-                  'flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition-colors duration-fast w-full text-left',
+                  'flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition-colors duration-fast w-auto md:w-full text-left shrink-0',
                   isActive
                     ? 'bg-brand-blue text-ink-inverse shadow-xs'
                     : 'text-ink-secondary hover:bg-surface-hover hover:text-ink-primary',
@@ -262,7 +260,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Settings Right Panel Display */}
-        <div className="flex-1 p-6 md:p-8 bg-surface-card overflow-y-auto">
+        <div className="flex-1 p-4 sm:p-6 md:p-8 bg-surface-card overflow-y-auto">
           
           {/* TAB 1: Account Overview */}
           {activeTab === 'account' && (
@@ -275,36 +273,38 @@ export default function SettingsPage() {
               {!isEditingProfile ? (
                 <>
                   {/* Avatar Info Row */}
-                  <div className="flex items-center gap-5 p-5 border border-surface-border bg-surface-base/30 rounded-xl">
-                    <PhotoSelector
-                      value={user?.photo_url}
-                      onChange={(newUrl) => handleDirectPhotoChange(newUrl)}
-                      customTrigger={({ openModal }) => (
-                        <button
-                          type="button"
-                          onClick={openModal}
-                          title="Click to change profile picture"
-                          className="w-16 h-16 rounded-full bg-brand-blue/15 text-brand-blue border border-brand-blue/20 overflow-hidden flex items-center justify-center text-2xl font-bold uppercase shadow-inner shrink-0 relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all"
-                        >
-                          {user?.photo_url ? (
-                            <img src={user.photo_url} alt="Profile" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                          ) : (
-                            user?.full_name?.charAt(0) || 'U'
-                          )}
-                          <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity duration-200">
-                            <RiCameraLine size={20} />
-                            <span className="text-[9px] font-bold mt-0.5 tracking-tight">CHANGE</span>
-                          </div>
-                        </button>
-                      )}
-                    />
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <h4 className="text-base font-bold text-ink-primary leading-tight truncate">{user?.full_name}</h4>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-brand-blue/10 text-brand-blue border border-brand-blue/20">
-                        {user?.role?.replace('_', ' ')}
-                      </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 border border-surface-border bg-surface-base/30 rounded-xl">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <PhotoSelector
+                        value={user?.photo_url}
+                        onChange={(newUrl) => handleDirectPhotoChange(newUrl)}
+                        customTrigger={({ openModal }) => (
+                          <button
+                            type="button"
+                            onClick={openModal}
+                            title="Click to change profile picture"
+                            className="w-16 h-16 rounded-full bg-brand-blue/15 text-brand-blue border border-brand-blue/20 overflow-hidden flex items-center justify-center text-2xl font-bold uppercase shadow-inner shrink-0 relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all"
+                          >
+                            {user?.photo_url ? (
+                              <img src={user.photo_url} alt="Profile" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            ) : (
+                              user?.full_name?.charAt(0) || 'U'
+                            )}
+                            <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity duration-200">
+                              <RiCameraLine size={20} />
+                              <span className="text-[9px] font-bold mt-0.5 tracking-tight">CHANGE</span>
+                            </div>
+                          </button>
+                        )}
+                      />
+                      <div className="space-y-1 min-w-0">
+                        <h4 className="text-base font-bold text-ink-primary leading-tight truncate">{user?.full_name}</h4>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-brand-blue/10 text-brand-blue border border-brand-blue/20">
+                          {user?.role?.replace('_', ' ')}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
                       {user?.photo_url && (
                         <Button
                           type="button"
@@ -327,19 +327,19 @@ export default function SettingsPage() {
 
                   {/* Data Table */}
                   <div className="space-y-3.5 text-sm">
-                    <div className="flex justify-between py-2 border-b border-surface-border/50">
+                    <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-surface-border/50 gap-1">
                       <span className="text-ink-secondary text-xs">Registered Name</span>
                       <span className="font-semibold text-ink-primary">{user?.full_name}</span>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-surface-border/50">
+                    <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-surface-border/50 gap-1">
                       <span className="text-ink-secondary text-xs">Email Address</span>
-                      <span className="font-medium text-ink-primary">{user?.email}</span>
+                      <span className="font-medium text-ink-primary break-all">{user?.email}</span>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-surface-border/50">
+                    <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-surface-border/50 gap-1">
                       <span className="text-ink-secondary text-xs">System Authority Role</span>
                       <span className="font-medium text-ink-primary">{user?.role}</span>
                     </div>
-                    <div className="flex justify-between py-2">
+                    <div className="flex flex-col sm:flex-row sm:justify-between py-2 gap-1">
                       <span className="text-ink-secondary text-xs">Account Status</span>
                       <span className="inline-flex items-center gap-1.5 text-xs font-bold text-status-active">
                         <span className="w-1.5 h-1.5 rounded-full bg-status-active animate-pulse" />
@@ -415,7 +415,7 @@ export default function SettingsPage() {
               {/* Theme Grid Selector */}
               <div className="space-y-3">
                 <label className="text-xs font-bold text-ink-secondary uppercase tracking-wider">Color Palette Mode</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
                     {
                       id: 'light',
@@ -514,7 +514,7 @@ export default function SettingsPage() {
                   const bEnd = iEnd + bPct
                   
                   return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center p-6 border border-surface-border bg-surface-base/30 rounded-xl">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-center p-4 sm:p-6 border border-surface-border bg-surface-base/30 rounded-xl">
                       {/* Circular Graph (Pie Chart based on grade determination reference) */}
                       <div className="flex flex-col items-center justify-center space-y-4">
                         <div className="relative w-44 h-44 rounded-full flex items-center justify-center shadow-md border-4 border-surface-card bg-surface-card overflow-hidden">
@@ -686,7 +686,7 @@ export default function SettingsPage() {
 
               {/* Specs List */}
               <div className="space-y-3.5 text-xs text-ink-secondary">
-                <div className="flex items-center justify-between p-3.5 bg-surface-base rounded-xl border border-surface-border">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-surface-base rounded-xl border border-surface-border">
                   <div className="flex items-center gap-3">
                     <RiComputerLine size={16} className="text-brand-navy" />
                     <div>
@@ -694,12 +694,12 @@ export default function SettingsPage() {
                       <p className="text-[10px] text-ink-secondary mt-0.5">Version 1.1.0 (Clinical Release)</p>
                     </div>
                   </div>
-                  <span className="font-semibold text-ink-primary bg-surface-card border border-surface-border px-2 py-0.5 rounded uppercase text-[10px]">
+                  <span className="font-semibold text-ink-primary bg-surface-card border border-surface-border px-2 py-0.5 rounded uppercase text-[10px] self-start sm:self-center shrink-0">
                     Active
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 bg-surface-base rounded-xl border border-surface-border">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-surface-base rounded-xl border border-surface-border">
                   <div className="flex items-center gap-3">
                     <RiDatabaseLine size={16} className="text-brand-navy" />
                     <div>
@@ -707,14 +707,14 @@ export default function SettingsPage() {
                       <p className="text-[10px] text-ink-secondary mt-0.5">SQLAlchemy ORM + MySQL Database (Production)</p>
                     </div>
                   </div>
-                  <span className="font-semibold text-ink-primary bg-surface-card border border-surface-border px-2 py-0.5 rounded uppercase text-[10px] flex items-center gap-1">
+                  <span className="font-semibold text-ink-primary bg-surface-card border border-surface-border px-2 py-0.5 rounded uppercase text-[10px] flex items-center gap-1 self-start sm:self-center shrink-0">
                     <RiServerLine size={12} className="text-status-active" /> MySQL Connected
                   </span>
                 </div>
 
                 {/* Cloudinary Info (Super Admin only) */}
                 {isSuperAdmin && (
-                  <div className="flex items-center justify-between p-3.5 bg-surface-base rounded-xl border border-surface-border">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-surface-base rounded-xl border border-surface-border">
                     <div className="flex items-center gap-3">
                       <RiCloudLine size={16} className="text-brand-navy" />
                       <div>
@@ -728,7 +728,7 @@ export default function SettingsPage() {
                     </div>
                     <span
                       className={[
-                        'px-2 py-0.5 rounded font-bold uppercase text-[9px] border',
+                        'px-2 py-0.5 rounded font-bold uppercase text-[9px] border self-start sm:self-center shrink-0',
                         cloudinaryStatus?.active
                           ? 'bg-status-active-bg text-status-active border-status-active/20'
                           : 'bg-status-attention-bg text-status-attention border-status-attention/20',
@@ -739,7 +739,7 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between p-3.5 bg-surface-base rounded-xl border border-surface-border">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 bg-surface-base rounded-xl border border-surface-border">
                   <div className="flex items-center gap-3">
                     <RiShieldCheckLine size={16} className="text-brand-navy" />
                     <div>
@@ -747,7 +747,7 @@ export default function SettingsPage() {
                       <p className="text-[10px] text-ink-secondary mt-0.5">Full role-aware access controls enforced.</p>
                     </div>
                   </div>
-                  <span className="font-bold text-status-active uppercase text-[9px] bg-status-active-bg border border-status-active/20 px-2 py-0.5 rounded-full">
+                  <span className="font-bold text-status-active uppercase text-[9px] bg-status-active-bg border border-status-active/20 px-2 py-0.5 rounded-full self-start sm:self-center shrink-0">
                     Audited
                   </span>
                 </div>

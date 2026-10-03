@@ -220,11 +220,18 @@ a:hover {
   background-color: rgba(51, 65, 85, 0.4) !important;
 }
 
+[role="dialog"] {
+  background-color: var(--surface-card) !important;
+  border-color: var(--surface-border) !important;
+  color: var(--ink-primary) !important;
+}
+
 .dark [role="dialog"] {
   background-color: var(--surface-card) !important;
   border-color: var(--surface-border) !important;
   color: var(--ink-primary) !important;
 }
+
 
 /* ── React DatePicker Theme Customizations ───────────────────── */
 .react-datepicker-popper-custom {

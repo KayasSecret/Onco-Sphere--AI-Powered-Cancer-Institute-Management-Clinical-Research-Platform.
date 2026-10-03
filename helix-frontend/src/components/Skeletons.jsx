@@ -26,18 +26,3 @@ export function SkeletonTable({ rows = 5, cols = 4 }) {
     </div>
   )
 }
-
-export function SkeletonCard() {
-  return (
-    <div className="helix-card p-5 space-y-4">
-      <div className="flex justify-between items-start">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-8 w-16" />
-        </div>
-        <Skeleton className="w-10 h-10 rounded-lg" />
-      </div>
-      <Skeleton className="h-3.5 w-full" />
-    </div>
-  )
-}

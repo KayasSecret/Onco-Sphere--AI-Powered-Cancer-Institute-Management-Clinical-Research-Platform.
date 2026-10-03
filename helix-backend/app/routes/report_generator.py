@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from datetime import date, datetime
+from datetime import date
 from typing import List, Optional
-import random
 
 from app.database.db import get_db
 from app.models.user import User, UserRole
@@ -31,7 +29,7 @@ from app.schemas.report_generator import (
     ReportAuditLogResponse,
     SettingsResponse,
 )
-from app.middleware.auth import get_current_user, require_roles
+from app.middleware.auth import get_current_user
 
 router = APIRouter(prefix="/reports", tags=["Report Generator"])
 

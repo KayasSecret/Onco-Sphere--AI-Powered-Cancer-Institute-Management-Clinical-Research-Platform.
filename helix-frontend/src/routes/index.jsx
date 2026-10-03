@@ -1,6 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
-import { selectIsAuthenticated } from '../redux/slices/authSlice'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 // Layouts
 import AppLayout from '../layouts/AppLayout'
@@ -26,6 +24,9 @@ import ReportCreatorPage from '../pages/Reports/ReportCreatorPage'
 import ReportSettingsPage from '../pages/Reports/ReportSettingsPage'
 import ReportPrintPage from '../pages/Reports/ReportPrintPage'
 
+// Visits module (direct visit detail view)
+import VisitDetailPage from '../pages/Visits/VisitDetailPage'
+
 // Route guards
 import RequireAuth from './RequireAuth'
 
@@ -50,8 +51,6 @@ import RequireAuth from './RequireAuth'
  * /unauthorized         → 403 page
  */
 export default function AppRouter() {
-  const isAuthenticated = useSelector(selectIsAuthenticated)
-
   return (
     <BrowserRouter>
       <Routes>
@@ -97,6 +96,9 @@ export default function AppRouter() {
               </RequireAuth>
             }
           />
+
+          {/* Direct visit detail view */}
+          <Route path="/visits/:visitId" element={<VisitDetailPage />} />
 
           {/* Admin management — Super Admin and Admin access */}
           <Route
@@ -189,22 +191,5 @@ export default function AppRouter() {
         />
       </Routes>
     </BrowserRouter>
-  )
-}
-
-// ── Placeholder for unbuilt phases ─────────────────────────────────────────
-function ComingSoon({ title, phase }) {
-  return (
-    <div className="flex items-center justify-center h-full min-h-[400px]">
-      <div className="text-center max-w-sm">
-        <div className="w-12 h-12 rounded-xl bg-brand-light/30 flex items-center justify-center mx-auto mb-4">
-          <div className="w-6 h-6 rounded bg-brand-navy/20" />
-        </div>
-        <h2 className="text-lg font-semibold text-ink-primary mb-1">{title}</h2>
-        <p className="text-ink-secondary text-sm">
-          This module is being built in <span className="font-medium text-brand-blue">{phase}</span>.
-        </p>
-      </div>
-    </div>
   )
 }

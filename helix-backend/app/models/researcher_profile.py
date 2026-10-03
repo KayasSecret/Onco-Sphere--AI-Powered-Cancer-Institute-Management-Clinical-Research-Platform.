@@ -3,9 +3,8 @@ ResearcherProfile — stores all researcher-specific fields.
 Linked one-to-one with the User table via user_id.
 The User table stays clean (auth + approval fields only).
 """
-from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Text, DateTime, ForeignKey, Boolean
+    Column, Integer, String, Text, DateTime, ForeignKey
 )
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship

@@ -1,7 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useSelector } from 'react-redux'
-import { selectUser } from '../../redux/slices/authSlice'
 import PageHeader from '../../components/PageHeader'
 import FormField from '../../components/FormField'
 import { Button } from '../../components/ui/button'
@@ -11,8 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { toast } from 'sonner'
 import reportService from '../../services/reportService'
 import patientService from '../../services/patientService'
-import { jsPDF } from 'jspdf'
-import html2canvas from 'html2canvas'
 import DatePicker from '../../components/DatePicker'
 import {
   RiArrowLeftLine,
@@ -21,12 +17,24 @@ import {
   RiDownload2Line,
 } from 'react-icons/ri'
 
+// Helper age calculator
+const calculateAge = (dobString) => {
+  if (!dobString) return ''
+  const today = new Date()
+  const birthDate = new Date(dobString)
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const m = today.getMonth() - birthDate.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  return age.toString()
+}
+
 export default function ReportCreatorPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const isPrintTriggered = searchParams.get('print') === 'true'
-  const currentUser = useSelector(selectUser)
 
   const printAreaRef = useRef(null)
 
@@ -72,12 +80,66 @@ export default function ReportCreatorPage() {
   const [defenceScore, setDefenceScore] = useState(0)
   const [ratioScore, setRatioScore] = useState(0)
 
+  const loadPatients = useCallback(async () => {
+    setPatientsLoading(true)
+    try {
+      const res = await patientService.getPatients({ limit: 100 })
+      const list = res.data.items || res.data.patients || []
+      setPatients(list)
+    } catch {
+      toast.error('Failed to load patients list.')
+    } finally {
+      setPatientsLoading(false)
+    }
+  }, [])
+
+  const loadSettings = useCallback(async () => {
+    try {
+      const res = await reportService.getSettings()
+      setInstSettings(res.data.institute)
+      setSignatures(res.data.signatures || [])
+      if (res.data.signatures?.length > 0) {
+        setDoctorName(res.data.signatures[0].doctor_name)
+      }
+    } catch {
+      toast.error('Failed to load system templates.')
+    }
+  }, [])
+
+  const loadTemplate = useCallback(async () => {
+    try {
+      const res = await reportService.getTemplates()
+      const stressTpl = res.data.find(t => t.code === 'OXIDATIVE_STRESS')
+      if (stressTpl) {
+        setTemplate(stressTpl)
+        setOverallSummary(stressTpl.description || '')
+        
+        if (!id) {
+          const seeded = stressTpl.parameters.map(p => ({
+            parameter_id: p.id,
+            code: p.code,
+            name: p.name,
+            section: p.section,
+            unit: p.unit,
+            result_value: '',
+            reference_range: p.reference_range,
+            interpretation: p.default_interpretation
+          }))
+          setParamValues(seeded)
+          setLabNumber(Math.floor(10000 + Math.random() * 90000).toString())
+        }
+      }
+    } catch {
+      toast.error('Failed to load report parameters.')
+    }
+  }, [id])
+
   // Fetch initial configuration data
   useEffect(() => {
     loadPatients()
     loadSettings()
     loadTemplate()
-  }, [])
+  }, [loadPatients, loadSettings, loadTemplate])
 
   // Auto score calculations
   useEffect(() => {
@@ -157,72 +219,7 @@ export default function ReportCreatorPage() {
 
   }, [paramValues])
 
-  const loadPatients = async () => {
-    setPatientsLoading(true)
-    try {
-      const res = await patientService.getPatients({ limit: 100 })
-      // Backend returns { total, page, limit, items: [...] }
-      const list = res.data.items || res.data.patients || []
-      setPatients(list)
-    } catch (err) {
-      toast.error('Failed to load patients list.')
-    } finally {
-      setPatientsLoading(false)
-    }
-  }
-
-  const loadSettings = async () => {
-    try {
-      const res = await reportService.getSettings()
-      setInstSettings(res.data.institute)
-      setSignatures(res.data.signatures || [])
-      if (res.data.signatures?.length > 0) {
-        setDoctorName(res.data.signatures[0].doctor_name)
-      }
-    } catch (err) {
-      toast.error('Failed to load system templates.')
-    }
-  }
-
-  const loadTemplate = async () => {
-    try {
-      const res = await reportService.getTemplates()
-      const stressTpl = res.data.find(t => t.code === 'OXIDATIVE_STRESS')
-      if (stressTpl) {
-        setTemplate(stressTpl)
-        setOverallSummary(stressTpl.description || '')
-        
-        // If creating new report, seed parameter values states
-        if (!id) {
-          const seeded = stressTpl.parameters.map(p => ({
-            parameter_id: p.id,
-            code: p.code,
-            name: p.name,
-            section: p.section,
-            unit: p.unit,
-            result_value: '',
-            reference_range: p.reference_range,
-            interpretation: p.default_interpretation
-          }))
-          setParamValues(seeded)
-          
-          // Seed a random 5 digit lab number
-          setLabNumber(Math.floor(10000 + Math.random() * 90000).toString())
-        }
-      }
-    } catch (err) {
-      toast.error('Failed to load report parameters.')
-    }
-  }
-
-  // Load existing report details if editing or printing
-  useEffect(() => {
-    if (id) {
-      loadReportDetails()
-    }
-  }, [id])
-
-  const loadReportDetails = async () => {
+  const loadReportDetails = useCallback(async () => {
     setLoading(true)
     try {
       const res = await reportService.getReport(id)
@@ -274,25 +271,19 @@ export default function ReportCreatorPage() {
           window.print()
         }, 1000)
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to retrieve report information.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, isPrintTriggered])
 
-  // Helper age calculator
-  const calculateAge = (dobString) => {
-    if (!dobString) return ''
-    const today = new Date()
-    const birthDate = new Date(dobString)
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const m = today.getMonth() - birthDate.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--
+  // Load existing report details if editing or printing
+  useEffect(() => {
+    if (id) {
+      loadReportDetails()
     }
-    return age.toString()
-  }
+  }, [id, loadReportDetails])
 
   // Handle Patient Dropdown Change
   const handlePatientSelect = async (patientId) => {
@@ -324,7 +315,7 @@ export default function ReportCreatorPage() {
         phone: p.phone,
         address: p.address,
       })
-    } catch (err) {
+    } catch {
       toast.error('Failed to retrieve patient profile details.')
     }
   }
@@ -434,7 +425,7 @@ export default function ReportCreatorPage() {
 
   return (
     <div className="space-y-6 animate-fade-in no-print-layout">
-      <div className="flex items-center justify-between no-print">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 no-print">
         <PageHeader
           title={id ? `Report Creator (v${version})` : 'New Oxidative Stress Report'}
           breadcrumbs={[
@@ -443,7 +434,7 @@ export default function ReportCreatorPage() {
             { label: id ? `Edit ${reportNumber}` : 'New Report' },
           ]}
         />
-        <Button onClick={() => navigate('/reports')} variant="ghost" className="text-ink-secondary flex items-center gap-1">
+        <Button onClick={() => navigate('/reports')} variant="ghost" className="text-ink-secondary flex items-center gap-1 self-start sm:self-center shrink-0">
           <RiArrowLeftLine size={16} /> Back to History
         </Button>
       </div>
@@ -512,7 +503,7 @@ export default function ReportCreatorPage() {
               </Select>
             </FormField>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <DatePicker
                 label="Collection Date"
                 required
@@ -529,7 +520,7 @@ export default function ReportCreatorPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField label="Sample Type" required>
                 <Input value={sampleType} onChange={(e) => setSampleType(e.target.value)} />
               </FormField>
@@ -548,7 +539,7 @@ export default function ReportCreatorPage() {
                 <div key={val.parameter_id} className="p-3 border border-surface-border bg-surface-base/30 rounded-lg space-y-2.5">
                   <p className="text-xs font-bold text-ink-primary leading-tight">{val.name}</p>
                   
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <FormField label="Result" required>
                       <Input
                         type="number"
@@ -607,10 +598,15 @@ export default function ReportCreatorPage() {
               <RiSaveLine size={16} /> Save Document
             </Button>
           </div>
+
+          <div className="lg:hidden p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-lg text-xs text-blue-700 dark:text-blue-300 flex items-start gap-2">
+            <span className="font-semibold mt-0.5">ℹ️</span>
+            <span>Live report preview is available on larger screens. Save the report to view and print it.</span>
+          </div>
         </div>
 
         {/* Pathology Report Live Preview Sheet (Right side) */}
-        <div className="flex-1 w-full bg-white/50 border border-surface-border rounded-xl p-5 xl:p-8 flex flex-col items-center overflow-auto max-h-[850px] shadow-inner relative group no-print">
+        <div className="flex-1 w-full bg-white/50 border border-surface-border rounded-xl p-5 xl:p-8 hidden lg:flex flex-col items-center overflow-auto max-h-[850px] shadow-inner relative group no-print">
           <div className="absolute right-4 top-4 flex gap-2 z-10 opacity-70 group-hover:opacity-100 transition-opacity">
             <Button onClick={triggerSystemPrint} variant="outline" className="border-surface-border bg-white text-ink-primary hover:bg-surface-hover h-8 text-xs flex items-center gap-1">
               <RiPrinterLine size={14} /> Print

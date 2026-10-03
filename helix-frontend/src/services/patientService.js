@@ -86,6 +86,18 @@ const patientService = {
    */
   deletePatientReport: (id, reportId) =>
     api.delete(`/api/v1/patients/${id}/reports/${reportId}`),
+
+  /**
+   * DELETE /api/v1/patients/{id}/cancer-images/{imageId}
+   */
+  deleteCancerImage: (patientId, imageId) =>
+    api.delete(`/api/v1/patients/${patientId}/cancer-images/${imageId}`),
+
+  /**
+   * PATCH /api/v1/patients/{id}/cancer-images/{imageId}  — rename title
+   */
+  renameCancerImage: (patientId, imageId, title) =>
+    api.patch(`/api/v1/patients/${patientId}/cancer-images/${imageId}`, { title }),
 }
 
 export default patientService

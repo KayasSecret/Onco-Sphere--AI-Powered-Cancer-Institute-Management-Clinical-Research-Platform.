@@ -28,7 +28,6 @@ import {
   RiUserSettingsLine,
   RiUserUnfollowLine,
   RiUserFollowLine,
-  RiEditLine,
   RiDeleteBin7Line,
   RiCheckLine,
   RiCloseLine,
@@ -39,7 +38,6 @@ import {
   RiAttachmentLine,
   RiProfileLine,
   RiMapPinUserLine,
-  RiAwardLine,
   RiInformationLine,
   RiFolderInfoLine,
   RiEyeLine,
@@ -201,6 +199,8 @@ export default function AdminListPage() {
     {
       header: 'System Access Role',
       accessor: 'role',
+      headerClassName: 'hidden sm:table-cell',
+      cellClassName: 'hidden sm:table-cell',
       cell: (row) => {
         const isSuper = row.role === 'SUPER_ADMIN'
         return (
@@ -223,6 +223,8 @@ export default function AdminListPage() {
     {
       header: 'Approval Status',
       accessor: 'is_approved',
+      headerClassName: 'hidden md:table-cell',
+      cellClassName: 'hidden md:table-cell',
       cell: (row) => {
         const status = row.is_approved || 'APPROVED'
         let badgeClass = ''
@@ -243,6 +245,8 @@ export default function AdminListPage() {
     {
       header: 'Status',
       accessor: 'is_active',
+      headerClassName: 'hidden sm:table-cell',
+      cellClassName: 'hidden sm:table-cell',
       cell: (row) => (
         <span
           className={[
@@ -376,7 +380,7 @@ export default function AdminListPage() {
         breadcrumbs={[{ label: 'Dashboard', to: '/dashboard' }, { label: 'Onco Access' }]}
         action={
           <Button
-            className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs px-4 py-2 font-semibold flex items-center gap-1.5 rounded-md"
+            className="w-full sm:w-auto bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs px-4 py-2 font-semibold flex items-center justify-center gap-1.5 rounded-md"
             onClick={() => {
               setEditUser(null)
               setFormOpen(true)
@@ -406,7 +410,7 @@ export default function AdminListPage() {
 
       {/* Account Create/Edit Form Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-md bg-surface-card border border-surface-border">
+        <DialogContent className="sm:max-w-md w-[95vw] bg-surface-card border border-surface-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-ink-primary font-bold text-lg flex items-center gap-2">
               <RiUserSettingsLine className="text-brand-blue" />
@@ -462,18 +466,18 @@ export default function AdminListPage() {
               </FormField>
             )}
 
-            <DialogFooter className="pt-2 gap-2 sm:gap-0">
+            <DialogFooter className="pt-2 flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
-                className="border-surface-border text-ink-primary hover:bg-surface-hover"
+                className="w-full sm:w-auto border-surface-border text-ink-primary hover:bg-surface-hover"
                 onClick={() => setFormOpen(false)}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse font-semibold"
+                className="w-full sm:w-auto bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse font-semibold"
               >
                 {editUser ? 'Save Details' : 'Create Account'}
               </Button>
@@ -508,7 +512,7 @@ export default function AdminListPage() {
 
       {/* Landscape Full Researcher Application Viewer Modal */}
       <Dialog open={!!viewingApplicationUser} onOpenChange={() => setViewingApplicationUser(null)}>
-        <DialogContent className="max-w-4xl bg-slate-900 border border-white/10 text-white rounded-2xl overflow-hidden p-6 shadow-2xl">
+        <DialogContent className="max-w-4xl w-[95vw] bg-slate-900 border border-white/10 text-white rounded-2xl overflow-hidden p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
           {viewingApplicationUser && (
             <div className="space-y-6 animate-fade-in text-left">
               
@@ -694,12 +698,12 @@ export default function AdminListPage() {
               )}
 
               {/* Action Buttons Footer */}
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-white/10 pt-4 mt-2">
+              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 border-t border-white/10 pt-4 mt-2">
                 <div className="text-xs text-slate-500 flex items-center gap-1.5">
                   <RiInformationLine size={14} className="text-slate-400 shrink-0" />
                   <span>Verify document legitimacy before deciding.</span>
                 </div>
-                <div className="flex gap-2.5">
+                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
                   <Button
                     variant="outline"
                     className="border-white/10 text-slate-300 hover:bg-white/5 text-xs font-semibold px-4"
