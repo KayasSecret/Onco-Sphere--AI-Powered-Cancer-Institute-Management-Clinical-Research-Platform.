@@ -70,6 +70,7 @@ export default function SettingsPage() {
 
   // Cloudinary State
   const [cloudinaryStatus, setCloudinaryStatus] = useState(null)
+  const [loadingCloudinary, setLoadingCloudinary] = useState(false)
   const [loadingPassword, setLoadingPassword] = useState(false)
 
   // Show/Hide Password states
