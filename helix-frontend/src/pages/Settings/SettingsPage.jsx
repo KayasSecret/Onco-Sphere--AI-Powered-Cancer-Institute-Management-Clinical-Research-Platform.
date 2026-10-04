@@ -70,6 +70,7 @@ export default function SettingsPage() {
 
   // Cloudinary State
   const [cloudinaryStatus, setCloudinaryStatus] = useState(null)
+  const [loadingCloudinary, setLoadingCloudinary] = useState(false)
   const [loadingPassword, setLoadingPassword] = useState(false)
 
   // Show/Hide Password states
@@ -107,7 +108,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (activeTab === 'storage') {
-      loadStorageStats( )
+      loadStorageStats()
     }
   }, [activeTab])
 
@@ -139,7 +140,7 @@ export default function SettingsPage() {
   const handleThemeChange = (mode) => {
     setThemeMode(mode)
     localStorage.setItem('theme', mode)
-    
+
     // DOM class toggling
     if (mode === 'dark') {
       document.documentElement.classList.add('dark')
@@ -161,13 +162,13 @@ export default function SettingsPage() {
         full_name: profileName.trim(),
         photo_url: profilePhotoUrl || "",
       })
-      
+
       // Update Redux state and localStorage
       dispatch(updateUserProfile({
         full_name: res.data.full_name,
         photo_url: res.data.photo_url,
       }))
-      
+
       toast.success('Profile details saved successfully.')
       setIsEditingProfile(false)
     } catch (err) {
@@ -191,13 +192,13 @@ export default function SettingsPage() {
         full_name: user?.full_name || profileName,
         photo_url: newPhotoUrl || "",
       })
-      
+
       setProfilePhotoUrl(res.data.photo_url || '')
       dispatch(updateUserProfile({
         full_name: res.data.full_name,
         photo_url: res.data.photo_url,
       }))
-      
+
       toast.success(newPhotoUrl ? 'Profile photo updated successfully.' : 'Profile photo removed.')
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to update profile photo.')
@@ -228,7 +229,7 @@ export default function SettingsPage() {
 
       {/* Outer Settings Panel Container */}
       <div className="flex flex-col md:flex-row min-h-[550px] border border-surface-border bg-surface-card rounded-xl overflow-hidden shadow-xs">
-        
+
         {/* Settings Left Sub-Navigation Sidebar */}
         <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-surface-border bg-surface-base/30 p-3 sm:p-4 gap-1.5 md:gap-0 md:space-y-1.5 shrink-0 flex flex-row md:flex-col overflow-x-auto md:overflow-x-visible">
           {[
@@ -238,30 +239,30 @@ export default function SettingsPage() {
             { id: 'security', label: 'Security', icon: RiShieldKeyholeLine },
             { id: 'about', label: 'About Onco Sphere', icon: RiInformationLine },
           ].filter((tab) => !tab.roles || tab.roles.includes(role))
-          .map((tab) => {
-            const IconComponent = tab.icon
-            const isActive = activeTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={[
-                  'flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition-colors duration-fast w-auto md:w-full text-left shrink-0',
-                  isActive
-                    ? 'bg-brand-blue text-ink-inverse shadow-xs'
-                    : 'text-ink-secondary hover:bg-surface-hover hover:text-ink-primary',
-                ].join(' ')}
-              >
-                <IconComponent size={16} />
-                {tab.label}
-              </button>
-            )
-          })}
+            .map((tab) => {
+              const IconComponent = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={[
+                    'flex items-center gap-3 px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide whitespace-nowrap transition-colors duration-fast w-auto md:w-full text-left shrink-0',
+                    isActive
+                      ? 'bg-brand-blue text-ink-inverse shadow-xs'
+                      : 'text-ink-secondary hover:bg-surface-hover hover:text-ink-primary',
+                  ].join(' ')}
+                >
+                  <IconComponent size={16} />
+                  {tab.label}
+                </button>
+              )
+            })}
         </div>
 
         {/* Settings Right Panel Display */}
         <div className="flex-1 p-4 sm:p-6 md:p-8 bg-surface-card overflow-y-auto">
-          
+
           {/* TAB 1: Account Overview */}
           {activeTab === 'account' && (
             <div className="space-y-6 max-w-xl animate-fade-in">
@@ -502,23 +503,23 @@ export default function SettingsPage() {
                     capacity_bytes: 524288000,
                     utilized_percent: 0
                   }
-                  
+
                   const total = stats.total_used_bytes || 1
                   const rPct = (stats.reports_bytes / total) * 100
                   const iPct = (stats.images_bytes / total) * 100
                   const bPct = (stats.backups_bytes / total) * 100
                   const aPct = (stats.avatars_bytes / total) * 100
-                  
+
                   const rEnd = rPct
                   const iEnd = rEnd + iPct
                   const bEnd = iEnd + bPct
-                  
+
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-center p-4 sm:p-6 border border-surface-border bg-surface-base/30 rounded-xl">
                       {/* Circular Graph (Pie Chart based on grade determination reference) */}
                       <div className="flex flex-col items-center justify-center space-y-4">
                         <div className="relative w-44 h-44 rounded-full flex items-center justify-center shadow-md border-4 border-surface-card bg-surface-card overflow-hidden">
-                          <div 
+                          <div
                             className="absolute inset-0 transition-transform duration-500 hover:scale-[1.03]"
                             style={{
                               background: `conic-gradient(#252D7E 0% ${rEnd}%, #2E9E7A ${rEnd}% ${iEnd}%, #C9973A ${iEnd}% ${bEnd}%, #8B5CF6 ${bEnd}% 100%)`,
@@ -535,7 +536,7 @@ export default function SettingsPage() {
                       {/* Legend & Details */}
                       <div className="space-y-4">
                         <h4 className="text-xs font-bold text-ink-secondary uppercase tracking-wider">Storage Breakdown</h4>
-                        
+
                         <div className="space-y-3">
                           {/* Item 1 */}
                           <div className="flex items-center justify-between text-xs">
