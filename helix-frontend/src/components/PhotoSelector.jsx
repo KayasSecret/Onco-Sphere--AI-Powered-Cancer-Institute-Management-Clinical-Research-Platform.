@@ -1,9 +1,17 @@
 import { useState, useRef, useEffect } from 'react'
-import { RiCameraLine, RiUploadCloud2Line, RiZoomInLine, RiRefreshLine, RiCheckLine } from 'react-icons/ri'
+import {
+  RiCameraLine,
+  RiCameraSwitchLine,
+  RiUploadCloud2Line,
+  RiZoomInLine,
+  RiRefreshLine,
+  RiCheckLine,
+} from 'react-icons/ri'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { Button } from './ui/button'
 import { toast } from 'sonner'
 import patientService from '../services/patientService'
+import useCamera from '../hooks/useCamera'
 
 export default function PhotoSelector({ value, onChange, onUploadingChange, customTrigger, hidePreview }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -11,9 +19,20 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
   const [imageSrc, setImageSrc] = useState(null)
   const [uploading, setUploading] = useState(false)
   
-  // Camera state
-  const [cameraStream, setCameraStream] = useState(null)
+  // Camera state & controller
   const videoRef = useRef(null)
+  const {
+    stream: cameraStream,
+    facingMode,
+    isLoading: cameraLoading,
+    isSwitching,
+    videoDevices,
+    cameraError,
+    startCamera,
+    stopCamera,
+    switchCamera,
+    captureFrame,
+  } = useCamera({ defaultFacingMode: 'user' })
 
   // Cropper state
   const [zoom, setZoom] = useState(1)
@@ -22,58 +41,36 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
   const dragStart = useRef({ x: 0, y: 0 })
   const imageRef = useRef(null)
   const [dimensions, setDimensions] = useState({ naturalWidth: 0, naturalHeight: 0 })
-  
-  // Clean up camera stream on unmount
-  useEffect(() => {
-    return () => {
-      if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop())
-      }
-    }
-  }, [cameraStream])
 
-  // Bind camera stream to video element once it is rendered
+  // Bind camera stream to video element whenever camera is active
   useEffect(() => {
-    if (mode === 'camera' && cameraStream && videoRef.current) {
-      videoRef.current.srcObject = cameraStream
+    if (mode === 'camera' && videoRef.current) {
+      if (videoRef.current.srcObject !== cameraStream) {
+        videoRef.current.srcObject = cameraStream || null
+      }
     }
   }, [mode, cameraStream])
 
-  // Stop camera helper
-  const stopCamera = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop())
-      setCameraStream(null)
+  // Start camera handler
+  const handleStartCamera = async () => {
+    setMode('camera')
+    const stream = await startCamera()
+    if (!stream) {
+      setMode('select')
     }
   }
 
-  // Start camera helper
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 480, height: 480, facingMode: 'user' }
-      })
-      setCameraStream(stream)
-      setMode('camera')
-    } catch {
-      toast.error('Could not access camera. Please check permissions.')
-    }
+  // Cancel camera handler
+  const handleCancelCamera = () => {
+    stopCamera()
+    setMode('select')
   }
 
   // Capture photo from camera
-  const capturePhoto = () => {
+  const handleCapturePhoto = () => {
     if (!videoRef.current) return
-    const canvas = document.createElement('canvas')
-    canvas.width = videoRef.current.videoWidth || 480
-    canvas.height = videoRef.current.videoHeight || 480
-    const ctx = canvas.getContext('2d')
-    
-    // Draw mirrored video if it's user facing
-    ctx.translate(canvas.width, 0)
-    ctx.scale(-1, 1)
-    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
-    
-    const dataUrl = canvas.toDataURL('image/jpeg')
+    const dataUrl = captureFrame(videoRef.current)
+    if (!dataUrl) return
     setImageSrc(dataUrl)
     stopCamera()
     setMode('crop')
@@ -234,8 +231,8 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
             <div className="grid grid-cols-2 gap-4 py-4">
               <button
                 type="button"
-                onClick={startCamera}
-                className="flex flex-col items-center justify-center p-6 border border-surface-border rounded-xl hover:bg-surface-hover hover:border-brand-blue group transition-all"
+                onClick={handleStartCamera}
+                className="flex flex-col items-center justify-center p-6 border border-surface-border rounded-xl hover:bg-surface-hover hover:border-brand-blue group transition-all cursor-pointer"
               >
                 <div className="w-12 h-12 rounded-full bg-brand-navy/10 flex items-center justify-center text-brand-navy group-hover:bg-brand-blue group-hover:text-ink-inverse transition-colors mb-3">
                   <RiCameraLine size={24} />
@@ -260,30 +257,94 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
             </div>
           )}
 
-          {/* MODE: Live Camera Stream */}
+          {/* MODE: Live Camera Stream with Front / Back Switch */}
           {mode === 'camera' && (
             <div className="space-y-4 py-2 flex flex-col items-center">
-              <div className="w-[300px] h-[300px] bg-black rounded-lg overflow-hidden relative border border-surface-border">
+              <div className="w-[300px] h-[300px] sm:w-[320px] sm:h-[320px] bg-slate-950 rounded-xl overflow-hidden relative border border-surface-border shadow-inner flex items-center justify-center">
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
-                  className="w-full h-full object-cover scale-x-[-1]"
+                  muted
+                  className={`w-full h-full object-cover transition-transform duration-200 ${
+                    facingMode === 'user' ? 'scale-x-[-1]' : 'scale-x-1'
+                  }`}
                 />
+
+                {/* Active Camera Indicator Badge */}
+                <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md text-[11px] font-semibold text-white/90 border border-white/10 flex items-center gap-1.5 shadow-sm pointer-events-none select-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>{facingMode === 'user' ? 'Front Camera' : 'Rear Camera'}</span>
+                </div>
+
+                {/* Direct Flip / Switch Camera Overlay Button */}
+                <button
+                  type="button"
+                  onClick={switchCamera}
+                  disabled={isSwitching || cameraLoading}
+                  title={
+                    videoDevices.length > 1
+                      ? `Switch to ${facingMode === 'user' ? 'Rear (Back)' : 'Front'} Camera (${videoDevices.length} cameras available)`
+                      : `Switch to ${facingMode === 'user' ? 'Rear (Back)' : 'Front'} Camera`
+                  }
+                  aria-label={`Switch to ${facingMode === 'user' ? 'Rear' : 'Front'} camera`}
+                  className="absolute top-2.5 right-2.5 p-2 rounded-full bg-black/65 hover:bg-black/85 text-white active:scale-95 transition-all backdrop-blur-md border border-white/20 shadow-md flex items-center justify-center hover:text-brand-blue-light focus:outline-hidden disabled:opacity-50 cursor-pointer"
+                >
+                  <RiCameraSwitchLine
+                    size={20}
+                    className={`transition-transform duration-300 ${isSwitching ? 'animate-spin' : 'hover:rotate-180'}`}
+                  />
+                </button>
+
+                {/* Switching / Starting Spinner Overlay */}
+                {(isSwitching || cameraLoading) && (
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center gap-2 text-white select-none">
+                    <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="text-xs font-medium">
+                      {isSwitching ? 'Switching camera...' : 'Starting camera...'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Camera Error Message Overlay */}
+                {cameraError && !cameraLoading && (
+                  <div className="absolute inset-x-3 bottom-3 p-2.5 rounded-lg bg-red-950/85 backdrop-blur-md border border-red-500/40 text-red-200 text-xs text-center shadow-lg">
+                    {cameraError}
+                  </div>
+                )}
               </div>
-              <div className="flex gap-2">
+
+              {/* Camera Action Buttons Row */}
+              <div className="flex flex-wrap items-center justify-center gap-2 w-full">
                 <Button
                   type="button"
                   variant="outline"
                   className="border-surface-border text-ink-primary hover:bg-surface-hover"
-                  onClick={() => setMode('select')}
+                  onClick={handleCancelCamera}
                 >
                   Cancel
                 </Button>
+
                 <Button
                   type="button"
-                  onClick={capturePhoto}
-                  className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse flex items-center gap-1"
+                  variant="outline"
+                  onClick={switchCamera}
+                  disabled={isSwitching || cameraLoading}
+                  className="border-surface-border text-ink-primary hover:bg-surface-hover flex items-center gap-1.5"
+                  title={`Switch to ${facingMode === 'user' ? 'Rear (Back)' : 'Front'} Camera`}
+                >
+                  <RiCameraSwitchLine
+                    size={16}
+                    className={isSwitching ? 'animate-spin' : ''}
+                  />
+                  <span>Switch Camera</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={handleCapturePhoto}
+                  disabled={isSwitching || cameraLoading || !cameraStream}
+                  className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse flex items-center gap-1.5 shadow-sm"
                 >
                   <RiCameraLine size={16} /> Capture Photo
                 </Button>
