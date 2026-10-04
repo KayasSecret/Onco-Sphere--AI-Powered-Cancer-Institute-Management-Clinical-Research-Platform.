@@ -13,8 +13,6 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-# Suppress noisy third-party logs in production
-logging.getLogger("aiosmtplib").setLevel(logging.WARNING)
 logging.getLogger("sqlalchemy.engine").setLevel(
     logging.WARNING if settings.ENVIRONMENT == "production" else logging.INFO
 )

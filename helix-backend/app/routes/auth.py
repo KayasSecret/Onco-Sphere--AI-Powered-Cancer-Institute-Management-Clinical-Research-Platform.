@@ -58,6 +58,15 @@ def register(
             researcher_role=payload.researcher_role or "N/A",
             research_area=payload.research_area or "N/A",
         )
+        # Notify Super Admin of the new pending application.
+        background_tasks.add_task(
+            email_service.send_admin_new_application_notification,
+            applicant_email=payload.email,
+            applicant_name=payload.full_name,
+            institution=payload.institution or "N/A",
+            researcher_role=payload.researcher_role or "N/A",
+            research_area=payload.research_area or "N/A",
+        )
 
     return result
 

@@ -1,0 +1,47 @@
+{% extends "emails/base.html" %}
+
+{% block subject %}New Researcher Application Pending Review{% endblock %}
+
+{% block body %}
+  <h1>New Application Received</h1>
+  <p class="lead">
+    A new researcher has submitted an application on <strong>Onco Sphere</strong>
+    and is awaiting your review.
+  </p>
+
+  <div class="info-card">
+    <div class="info-row">
+      <span class="info-label">Name</span>
+      <span class="info-value">{{ applicant_name }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Email</span>
+      <span class="info-value">{{ applicant_email }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Institution</span>
+      <span class="info-value">{{ institution }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Role</span>
+      <span class="info-value">{{ researcher_role }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Research Area</span>
+      <span class="info-value">{{ research_area }}</span>
+    </div>
+  </div>
+
+  <p style="text-align: center; margin-top: 28px;">
+    <a href="{{ review_url }}" class="btn-primary">Review Application</a>
+  </p>
+
+  <hr class="divider" />
+
+  <div class="note-box">
+    <p>
+      Log in to the Onco Sphere admin panel to approve or reject this application.
+      The applicant will be notified automatically once a decision is made.
+    </p>
+  </div>
+{% endblock %}
