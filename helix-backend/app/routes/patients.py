@@ -1,10 +1,16 @@
 import re
+import os
+import mimetypes
+import urllib.request
 from typing import List, Optional
 from datetime import datetime, date
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
+import cloudinary.utils
+from app.config.settings import settings
 from app.database.db import get_db
 from app.models.user import UserRole
 from app.models.patient import Patient, TreatmentStatus, PatientReport, PatientCancerImage
@@ -12,6 +18,7 @@ from app.schemas.patient import PatientCreate, PatientUpdate, PatientResponse
 from app.middleware.auth import require_roles, get_current_user
 
 router = APIRouter(prefix="/patients", tags=["Patient Registry"])
+
 
 
 def generate_icsr_patient_code(db: Session) -> str:
@@ -454,3 +461,195 @@ def rename_patient_cancer_image(
     db.commit()
     db.refresh(img)
     return img
+
+
+# ── File Delivery & Streaming Proxy (Permanent Fix for View & Download) ───────
+def _get_streaming_generator(target_url: str):
+    """Streams remote or local file chunks."""
+    req = urllib.request.Request(target_url, headers={"User-Agent": "Mozilla/5.0 (HELIX Service)"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        while True:
+            chunk = resp.read(64 * 1024)
+            if not chunk:
+                break
+            yield chunk
+
+
+def _resolve_asset_fetch_url(file_url: str, default_ext: str = "") -> str:
+    """
+    Resolves storage URLs to fetchable locations.
+    For Cloudinary documents/images that have PDF or raw delivery restrictions,
+    generates a signed Cloudinary download URL so access is authorized.
+    """
+    if "res.cloudinary.com" in file_url and settings.CLOUDINARY_API_KEY:
+        m = re.search(r"/(image|raw|video)/upload/(?:s--[^/]+--/)?(?:v\d+/)?(.+?)(?:\.([a-zA-Z0-9]+))?$", file_url)
+        if m:
+            res_type, pub_id, ext = m.groups()
+            file_ext = (ext or default_ext or "").lower().lstrip(".")
+            # Ensure Cloudinary is configured
+            cloudinary.config(
+                cloud_name=settings.CLOUDINARY_CLOUD_NAME,
+                api_key=settings.CLOUDINARY_API_KEY,
+                api_secret=settings.CLOUDINARY_API_SECRET,
+                secure=True,
+            )
+            try:
+                if res_type == "raw":
+                    # Cloudinary raw resources require full filename with extension in public_id
+                    raw_pub_id = f"{pub_id}.{ext}" if ext and not pub_id.endswith(f".{ext}") else pub_id
+                    signed_dl_url = cloudinary.utils.private_download_url(
+                        raw_pub_id,
+                        "",
+                        resource_type="raw",
+                        type="upload",
+                    )
+                    if signed_dl_url:
+                        return signed_dl_url
+                else:
+                    # Image resource type
+                    signed_dl_url = cloudinary.utils.private_download_url(
+                        pub_id,
+                        file_ext,
+                        resource_type=res_type,
+                        type="upload",
+                    )
+                    if signed_dl_url:
+                        return signed_dl_url
+            except Exception:
+                pass
+    return file_url
+
+
+@router.get("/{patient_id}/reports/{report_id}/download")
+def download_patient_report(
+    patient_id: int,
+    report_id: int,
+    disposition: str = Query("attachment", regex="^(attachment|inline)$"),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """
+    Securely stream/download or view patient reports.
+    Solves Cloudinary 401 ACL delivery restrictions and cross-origin download restrictions.
+    - disposition=inline: opens inside browser viewer
+    - disposition=attachment: triggers file download
+    """
+    report = (
+        db.query(PatientReport)
+        .filter(PatientReport.id == report_id, PatientReport.patient_id == patient_id)
+        .first()
+    )
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found.")
+
+    ext = (report.file_type or "pdf").lower().lstrip(".")
+    mime_type = mimetypes.guess_type(f"file.{ext}")[0] or "application/octet-stream"
+    safe_title = re.sub(r'[^\w\s\.-]', '_', report.title or "report").strip()
+    if not safe_title.lower().endswith(f".{ext}"):
+        filename = f"{safe_title}.{ext}"
+    else:
+        filename = safe_title
+
+    fetch_url = _resolve_asset_fetch_url(report.file_url, default_ext=ext)
+
+    # Local file fallback check
+    if fetch_url.startswith("http://localhost:8000/static/") or fetch_url.startswith("/static/"):
+        rel_path = fetch_url.split("/static/")[-1]
+        local_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static", rel_path)
+        if os.path.isfile(local_path):
+            with open(local_path, "rb") as f:
+                content = f.read()
+            return Response(
+                content=content,
+                media_type=mime_type,
+                headers={
+                    "Content-Disposition": f'{disposition}; filename="{filename}"',
+                    "Content-Length": str(len(content)),
+                    "Cache-Control": "private, max-age=3600",
+                },
+            )
+
+    try:
+        req = urllib.request.Request(fetch_url, headers={"User-Agent": "Mozilla/5.0 (HELIX Service)"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            content = resp.read()
+        return Response(
+            content=content,
+            media_type=mime_type,
+            headers={
+                "Content-Disposition": f'{disposition}; filename="{filename}"',
+                "Content-Length": str(len(content)),
+                "Cache-Control": "private, max-age=3600",
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to retrieve report file: {str(e)}")
+
+
+@router.get("/{patient_id}/cancer-images/{image_id}/download")
+def download_patient_cancer_image(
+    patient_id: int,
+    image_id: int,
+    disposition: str = Query("attachment", regex="^(attachment|inline)$"),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """
+    Securely stream/download or view patient cancer scan images.
+    Supports inline view and direct attachment download with original filename.
+    """
+    img = (
+        db.query(PatientCancerImage)
+        .filter(PatientCancerImage.id == image_id, PatientCancerImage.patient_id == patient_id)
+        .first()
+    )
+    if not img:
+        raise HTTPException(status_code=404, detail="Cancer image not found.")
+
+    ext = "jpg"
+    m = re.search(r"\.([a-zA-Z0-9]+)(?:\?.*)?$", img.image_url)
+    if m:
+        ext = m.group(1).lower()
+
+    mime_type = mimetypes.guess_type(f"file.{ext}")[0] or "image/jpeg"
+    safe_title = re.sub(r'[^\w\s\.-]', '_', img.title or "cancer_scan").strip()
+    if not safe_title.lower().endswith(f".{ext}"):
+        filename = f"{safe_title}.{ext}"
+    else:
+        filename = safe_title
+
+    fetch_url = _resolve_asset_fetch_url(img.image_url, default_ext=ext)
+
+    # Local file fallback check
+    if fetch_url.startswith("http://localhost:8000/static/") or fetch_url.startswith("/static/"):
+        rel_path = fetch_url.split("/static/")[-1]
+        local_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static", rel_path)
+        if os.path.isfile(local_path):
+            with open(local_path, "rb") as f:
+                content = f.read()
+            return Response(
+                content=content,
+                media_type=mime_type,
+                headers={
+                    "Content-Disposition": f'{disposition}; filename="{filename}"',
+                    "Content-Length": str(len(content)),
+                    "Cache-Control": "private, max-age=3600",
+                },
+            )
+
+    try:
+        req = urllib.request.Request(fetch_url, headers={"User-Agent": "Mozilla/5.0 (HELIX Service)"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            content = resp.read()
+        return Response(
+            content=content,
+            media_type=mime_type,
+            headers={
+                "Content-Disposition": f'{disposition}; filename="{filename}"',
+                "Content-Length": str(len(content)),
+                "Cache-Control": "private, max-age=3600",
+            },
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to retrieve cancer image: {str(e)}")
+

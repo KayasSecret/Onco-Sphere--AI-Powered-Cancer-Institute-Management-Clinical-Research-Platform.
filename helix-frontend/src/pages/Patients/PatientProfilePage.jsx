@@ -71,6 +71,10 @@ export default function PatientProfilePage() {
   const [renamingImageId, setRenamingImageId] = useState(null)
   const [renameText, setRenameText] = useState('')
 
+  // Active loading state for view/download operations
+  const [activeReportAction, setActiveReportAction] = useState({ id: null, type: null }) // type: 'view' | 'download'
+  const [activeImageAction, setActiveImageAction] = useState({ id: null, type: null }) // type: 'view' | 'download'
+
   const isWritable = role === 'SUPER_ADMIN' || role === 'ADMIN'
   const isSuperAdmin = role === 'SUPER_ADMIN'
 
@@ -198,6 +202,103 @@ export default function PatientProfilePage() {
       toast.error(err.response?.data?.detail || "Failed to delete report.")
     }
   }
+
+  // Handle View Report (opens inline in new browser tab)
+  const handleViewReport = async (report) => {
+    setActiveReportAction({ id: report.id, type: 'view' })
+    try {
+      const res = await patientService.fetchReportBlob(id, report.id, 'inline')
+      const ext = (report.file_type || 'pdf').toLowerCase().replace(/^\./, '')
+      let mimeType = res.headers['content-type']
+      if (!mimeType || mimeType === 'application/octet-stream') {
+        if (ext === 'pdf') mimeType = 'application/pdf'
+        else if (['jpg', 'jpeg'].includes(ext)) mimeType = 'image/jpeg'
+        else if (ext === 'png') mimeType = 'image/png'
+        else if (ext === 'txt') mimeType = 'text/plain'
+      }
+      const blob = new Blob([res.data], { type: mimeType })
+      const blobUrl = URL.createObjectURL(blob)
+      window.open(blobUrl, '_blank', 'noopener,noreferrer')
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
+    } catch (err) {
+      console.error('Failed to view report:', err)
+      // Fallback: try direct file_url if available
+      if (report.file_url) {
+        window.open(report.file_url, '_blank', 'noopener,noreferrer')
+      } else {
+        toast.error(err.response?.data?.detail || 'Failed to open report.')
+      }
+    } finally {
+      setActiveReportAction({ id: null, type: null })
+    }
+  }
+
+  // Handle Download Report (forces browser download with clean filename)
+  const handleDownloadReport = async (report) => {
+    setActiveReportAction({ id: report.id, type: 'download' })
+    try {
+      const res = await patientService.fetchReportBlob(id, report.id, 'attachment')
+      const ext = (report.file_type || 'pdf').toLowerCase().replace(/^\./, '')
+      const blob = new Blob([res.data], { type: res.headers['content-type'] || 'application/octet-stream' })
+      const blobUrl = URL.createObjectURL(blob)
+
+      const link = document.createElement('a')
+      link.href = blobUrl
+      const safeTitle = (report.title || 'report').replace(/[^\w\s\.-]/g, '_').trim()
+      link.download = safeTitle.toLowerCase().endsWith(`.${ext}`) ? safeTitle : `${safeTitle}.${ext}`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000)
+      toast.success('Report downloaded.')
+    } catch (err) {
+      console.error('Failed to download report:', err)
+      if (report.file_url) {
+        const link = document.createElement('a')
+        link.href = report.file_url
+        link.target = '_blank'
+        link.download = `${report.title || 'report'}.${report.file_type || 'pdf'}`
+        link.click()
+      } else {
+        toast.error(err.response?.data?.detail || 'Failed to download report.')
+      }
+    } finally {
+      setActiveReportAction({ id: null, type: null })
+    }
+  }
+
+  // Handle Download Cancer Image (forces download with clean filename)
+  const handleDownloadCancerImage = async (img) => {
+    setActiveImageAction({ id: img.id, type: 'download' })
+    try {
+      const res = await patientService.fetchCancerImageBlob(id, img.id, 'attachment')
+      const blob = new Blob([res.data], { type: res.headers['content-type'] || 'image/jpeg' })
+      const blobUrl = URL.createObjectURL(blob)
+
+      const link = document.createElement('a')
+      link.href = blobUrl
+      let ext = 'jpg'
+      const match = (img.image_url || '').match(/\.([a-zA-Z0-9]+)(?:\?.*)?$/)
+      if (match) ext = match[1].toLowerCase()
+      const safeTitle = (img.title || 'cancer_scan').replace(/[^\w\s\.-]/g, '_').trim()
+      link.download = safeTitle.toLowerCase().endsWith(`.${ext}`) ? safeTitle : `${safeTitle}.${ext}`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000)
+      toast.success('Scan image downloaded.')
+    } catch (err) {
+      console.error('Failed to download cancer image:', err)
+      if (img.image_url) {
+        window.open(img.image_url, '_blank', 'noopener,noreferrer')
+      } else {
+        toast.error(err.response?.data?.detail || 'Failed to download image.')
+      }
+    } finally {
+      setActiveImageAction({ id: null, type: null })
+    }
+  }
+
 
   const filteredReports = reports.filter((r) => {
     const matchesSearch = r.title.toLowerCase().includes(reportsSearch.toLowerCase())
@@ -594,27 +695,26 @@ export default function PatientProfilePage() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             {/* View Button */}
-                            <a
-                              href={report.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 text-ink-secondary hover:text-brand-blue hover:bg-surface-hover rounded-md transition-colors"
+                            <button
+                              type="button"
+                              onClick={() => handleViewReport(report)}
+                              disabled={activeReportAction.id === report.id}
+                              className="p-1.5 text-ink-secondary hover:text-brand-blue hover:bg-surface-hover rounded-md transition-colors disabled:opacity-50 cursor-pointer"
                               title="View Report"
                             >
-                              <RiEyeLine size={17} />
-                            </a>
+                              <RiEyeLine size={17} className={activeReportAction.id === report.id && activeReportAction.type === 'view' ? 'animate-pulse text-brand-blue' : ''} />
+                            </button>
 
                             {/* Download Button */}
-                            <a
-                              href={report.file_url}
-                              download
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 text-ink-secondary hover:text-brand-blue hover:bg-surface-hover rounded-md transition-colors"
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadReport(report)}
+                              disabled={activeReportAction.id === report.id}
+                              className="p-1.5 text-ink-secondary hover:text-brand-blue hover:bg-surface-hover rounded-md transition-colors disabled:opacity-50 cursor-pointer"
                               title="Download Report"
                             >
-                              <RiDownloadLine size={17} />
-                            </a>
+                              <RiDownloadLine size={17} className={activeReportAction.id === report.id && activeReportAction.type === 'download' ? 'animate-bounce text-brand-blue' : ''} />
+                            </button>
 
                             {/* Delete Button (Writable roles only) */}
                             {isWritable && (
@@ -855,25 +955,39 @@ export default function PatientProfilePage() {
                             <span>{new Date(displayTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>
                           </div>
 
-                          {/* Action Buttons (writable roles only) */}
-                          {isWritable && !isRenaming && (
+                          {/* Action Buttons */}
+                          {!isRenaming && (
                             <div className="flex items-center gap-1 pt-0.5" onClick={(e) => e.stopPropagation()}>
                               <button
                                 type="button"
-                                onClick={() => { setRenamingImageId(img.id); setRenameText(img.title || '') }}
-                                className="flex-1 flex items-center justify-center gap-0.5 text-[10px] text-ink-secondary hover:text-brand-blue hover:bg-surface-hover rounded py-0.5 transition-colors"
-                                title="Rename"
+                                onClick={() => handleDownloadCancerImage(img)}
+                                disabled={activeImageAction.id === img.id}
+                                className="flex-1 flex items-center justify-center gap-0.5 text-[10px] text-ink-secondary hover:text-brand-blue hover:bg-surface-hover rounded py-0.5 transition-colors cursor-pointer disabled:opacity-50"
+                                title="Download image"
                               >
-                                <RiPencilLine size={11} /> Rename
+                                <RiDownloadLine size={11} className={activeImageAction.id === img.id ? 'animate-bounce text-brand-blue' : ''} />
+                                <span>Save</span>
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteCancerImage(img.id)}
-                                className="flex-1 flex items-center justify-center gap-0.5 text-[10px] text-ink-secondary hover:text-status-critical hover:bg-status-critical-bg rounded py-0.5 transition-colors"
-                                title="Delete"
-                              >
-                                <RiDeleteBin7Line size={11} /> Delete
-                              </button>
+                              {isWritable && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setRenamingImageId(img.id); setRenameText(img.title || '') }}
+                                    className="flex-1 flex items-center justify-center gap-0.5 text-[10px] text-ink-secondary hover:text-brand-blue hover:bg-surface-hover rounded py-0.5 transition-colors cursor-pointer"
+                                    title="Rename"
+                                  >
+                                    <RiPencilLine size={11} /> Rename
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteCancerImage(img.id)}
+                                    className="flex-1 flex items-center justify-center gap-0.5 text-[10px] text-ink-secondary hover:text-status-critical hover:bg-status-critical-bg rounded py-0.5 transition-colors cursor-pointer"
+                                    title="Delete"
+                                  >
+                                    <RiDeleteBin7Line size={11} /> Delete
+                                  </button>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
@@ -974,14 +1088,15 @@ export default function PatientProfilePage() {
                             </button>
                           </>
                         )}
-                        <a
-                          href={activeImageModal.image_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs px-3 py-1.5 rounded-md font-semibold transition-colors"
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadCancerImage(activeImageModal)}
+                          disabled={activeImageAction.id === activeImageModal.id}
+                          className="flex items-center gap-1 bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs px-3 py-1.5 rounded-md font-semibold transition-colors cursor-pointer disabled:opacity-50"
                         >
-                          <RiDownloadLine size={14} /> Full Resolution
-                        </a>
+                          <RiDownloadLine size={14} className={activeImageAction.id === activeImageModal.id ? 'animate-bounce' : ''} />
+                          <span>{activeImageAction.id === activeImageModal.id ? 'Downloading...' : 'Full Resolution'}</span>
+                        </button>
                       </div>
                     </div>
                   )}

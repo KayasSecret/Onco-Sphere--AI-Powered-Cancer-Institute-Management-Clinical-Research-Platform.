@@ -98,6 +98,25 @@ const patientService = {
    */
   renameCancerImage: (patientId, imageId, title) =>
     api.patch(`/api/v1/patients/${patientId}/cancer-images/${imageId}`, { title }),
+
+  /**
+   * Stream/Fetch Report file blob (disposition: 'inline' or 'attachment')
+   */
+  fetchReportBlob: (patientId, reportId, disposition = 'inline') =>
+    api.get(`/api/v1/patients/${patientId}/reports/${reportId}/download`, {
+      params: { disposition },
+      responseType: 'blob',
+    }),
+
+  /**
+   * Stream/Fetch Cancer Image blob (disposition: 'inline' or 'attachment')
+   */
+  fetchCancerImageBlob: (patientId, imageId, disposition = 'inline') =>
+    api.get(`/api/v1/patients/${patientId}/cancer-images/${imageId}/download`, {
+      params: { disposition },
+      responseType: 'blob',
+    }),
 }
 
 export default patientService
+

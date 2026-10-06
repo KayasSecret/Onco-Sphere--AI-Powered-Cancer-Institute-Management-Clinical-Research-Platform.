@@ -125,10 +125,22 @@ async def upload_document(
     # Cloudinary path
     if cloudinary_active:
         try:
+            # PDFs, Docs, Excel, TXT are non-image documents; upload as raw with original extension to avoid image pipeline restrictions
+            is_doc_raw = ext in [".pdf", ".doc", ".docx", ".txt", ".xls", ".xlsx"]
+            resource_type = "raw" if is_doc_raw else "auto"
+            unique_name = f"{uuid.uuid4()}{ext}"
+            
+            upload_kwargs = {
+                "folder": "helix_documents",
+                "resource_type": resource_type,
+            }
+            if is_doc_raw:
+                upload_kwargs["public_id"] = unique_name
+                upload_kwargs["use_filename"] = True
+
             upload_result = cloudinary.uploader.upload(
                 file.file,
-                folder="helix_documents",
-                resource_type="auto"
+                **upload_kwargs
             )
             return {"url": upload_result.get("secure_url")}
         except Exception as e:
