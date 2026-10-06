@@ -58,6 +58,7 @@ def list_patients(
     search: Optional[str] = Query(None),
     status_filter: Optional[TreatmentStatus] = Query(None, alias="status"),
     department: Optional[str] = Query(None),
+    cancer_type_site: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user),  # Enforce authentication for all roles
 ):
@@ -82,6 +83,8 @@ def list_patients(
     if department:
         query = query.filter(Patient.department == department)
 
+    if cancer_type_site:
+        query = query.filter(Patient.cancer_type_site == cancer_type_site)
     total = query.count()
     patients = query.order_by(Patient.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   fetchPatientsThunk,
   deletePatientThunk,
@@ -21,6 +21,8 @@ import { toast } from 'sonner'
 export default function PatientListPage() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const cancerTypeSite = searchParams.get('cancer_type_site') || ''
   const patients = useSelector(selectPatients)
   const total = useSelector(selectPatientsTotal)
   const status = useSelector(selectPatientStatus)
@@ -35,8 +37,8 @@ export default function PatientListPage() {
   const isWritable = role === 'SUPER_ADMIN' || role === 'ADMIN'
 
   useEffect(() => {
-    dispatch(fetchPatientsThunk({ page, limit, search }))
-  }, [dispatch, page, search])
+  dispatch(fetchPatientsThunk({ page, limit, search, cancer_type_site: cancerTypeSite }))
+  }, [dispatch, page, search, cancerTypeSite])
 
   const handleDeleteConfirm = async () => {
     if (!deleteId) return

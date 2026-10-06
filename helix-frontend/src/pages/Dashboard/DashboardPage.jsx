@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   RiUserHeartLine,
   RiCalendarCheckLine,
@@ -45,6 +46,7 @@ function StatCard({ title, value, icon: Icon, color, loading }) {
 
 // ── Dashboard Page ────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -112,7 +114,12 @@ export default function DashboardPage() {
                 const percentage = (item.count / maxCount) * 100
 
                 return (
-                  <div key={item.cancer_type} className="group space-y-1.5 hover:bg-surface-hover/30 p-2 rounded-lg transition-colors">
+                  <div
+                    key={item.cancer_type}
+                    className="group space-y-1.5 hover:bg-surface-hover/30 p-2 rounded-lg transition-colors cursor-pointer"
+                    onClick={() => navigate(`/patients?cancer_type_site=${encodeURIComponent(item.cancer_type)}`)}
+                    title={`View ${item.cancer_type} patients`}
+                  >
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-semibold text-ink-primary">{item.cancer_type}</span>
                       <span className="font-mono text-ink-secondary bg-surface-base px-2 py-0.5 rounded font-semibold">
