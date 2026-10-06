@@ -11,3 +11,6 @@ export const isValidPhone = (phone) => {
   if (!phone) return false
   return phoneRegex.test(phone.trim())
 }
+
+export const passwordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/

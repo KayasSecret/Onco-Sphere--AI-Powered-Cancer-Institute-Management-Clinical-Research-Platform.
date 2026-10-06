@@ -15,9 +15,16 @@ import {
   RiErrorWarningLine,
 } from 'react-icons/ri'
 import { toast } from 'sonner'
+import { passwordRegex } from '../../lib/validation'
 
 const schema = yup.object({
-  password: yup.string().min(8, 'Minimum 8 characters').required('Password is required'),
+  password: yup
+    .string()
+    .matches(
+      passwordRegex,
+      'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character'
+    )
+    .required('Password is required'),
   confirmPassword: yup
     .string()
     .oneOf([yup.ref('password')], 'Passwords do not match')

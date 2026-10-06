@@ -46,7 +46,7 @@ import {
 import { Badge } from '../../components/ui/badge'
 import { toast } from 'sonner'
 import adminService from '../../services/adminService'
-import { emailRegex } from '../../lib/validation'
+import { phoneRegex, emailRegex, passwordRegex } from '../../lib/validation'
 
 const createSchema = yup.object({
   full_name: yup.string().min(2, 'Name must be at least 2 characters').required('Name is required'),
@@ -56,7 +56,13 @@ const createSchema = yup.object({
     .required('Email is required')
     .matches(emailRegex, 'Enter a valid email address'),
   role: yup.string().required('Role is required'),
-  password: yup.string().min(8, 'Minimum 8 characters').required('Password is required'),
+  password: yup
+    .string()
+    .matches(
+      passwordRegex,
+      'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character'
+    )
+    .required('Password is required'),
 })
 
 const editSchema = yup.object({

@@ -22,7 +22,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { phoneRegex, emailRegex } from '../../lib/validation'
+import { phoneRegex, emailRegex, passwordRegex} from '../../lib/validation'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
@@ -92,7 +92,13 @@ const step1Schema = yup.object({
     .trim()
     .required('Email is required')
     .matches(emailRegex, 'Enter a valid email address'),
-  password:          yup.string().min(8, 'Minimum 8 characters').required('Password is required'),
+  password: yup
+    .string()
+    .matches(
+      passwordRegex,
+      'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character'
+    )
+    .required('Password is required'),
   confirm_password:  yup.string()
     .oneOf([yup.ref('password')], 'Passwords do not match')
     .required('Please confirm your password'),
