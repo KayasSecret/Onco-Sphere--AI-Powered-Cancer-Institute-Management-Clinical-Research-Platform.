@@ -108,14 +108,24 @@ export default function VisitDetailPage() {
     </div>
   )
 
+  const handleBack = () => {
+    if (visit?.patient_id) {
+      navigate(`/patients/${visit.patient_id}`)
+    } else if (window.history.length > 1) {
+      navigate(-1)
+    } else {
+      navigate('/patients')
+    }
+  }
+
   if (error) return (
     <div className="flex flex-col items-center justify-center min-h-64 gap-3">
       <RiAlertLine size={36} className="text-status-critical" />
       <p className="text-sm font-semibold text-ink-primary">{error}</p>
       <div className="flex gap-2">
         <Button size="sm" variant="outline" onClick={load}><RiRefreshLine size={13} className="mr-1" /> Retry</Button>
-        <Button size="sm" variant="ghost" onClick={() => navigate("/visits")}>
-          <RiArrowLeftLine size={13} className="mr-1" /> Back to Visits
+        <Button size="sm" variant="ghost" onClick={handleBack}>
+          <RiArrowLeftLine size={13} className="mr-1" /> Back
         </Button>
       </div>
     </div>
@@ -130,7 +140,8 @@ export default function VisitDetailPage() {
         title={`Visit ${visit?.visit_code || ""}`}
         breadcrumbs={[
           { label: "Dashboard", to: "/dashboard" },
-          { label: "Onco Visits", to: "/visits" },
+          { label: "Patient Register", to: "/patients" },
+          ...(visit?.patient_id ? [{ label: `Patient #${visit.patient_id}`, to: `/patients/${visit.patient_id}` }] : []),
           { label: visit?.visit_code || "Detail" },
         ]}
       />
@@ -150,7 +161,7 @@ export default function VisitDetailPage() {
                   <span className="flex items-center gap-1">
                     <RiCalendarLine size={13} />
                     {scheduled.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}
-                    &nbsp;�&nbsp;
+                    &nbsp;•&nbsp;
                     <RiTimeLine size={13} />
                     {scheduled.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                   </span>
@@ -166,8 +177,8 @@ export default function VisitDetailPage() {
                 )}
               </div>
             </div>
-            <Button size="sm" variant="outline" onClick={() => navigate("/visits")} className="text-xs flex items-center gap-1 border-surface-border">
-              <RiArrowLeftLine size={13} /> All Visits
+            <Button size="sm" variant="outline" onClick={handleBack} className="text-xs flex items-center gap-1 border-surface-border">
+              <RiArrowLeftLine size={13} /> Back
             </Button>
           </div>
         </CardContent>

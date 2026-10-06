@@ -17,6 +17,18 @@ export default function App() {
     } else {
       document.documentElement.classList.remove('dark')
     }
+
+    // Handle bfcache restoration: if user logged out and hit browser Back, redirect to login
+    const handlePageShow = () => {
+      if (!localStorage.getItem('helix_access_token')) {
+        const publicPaths = ['/', '/login', '/forgot-password', '/reset-password', '/register/apply']
+        if (!publicPaths.includes(window.location.pathname)) {
+          window.location.replace('/login')
+        }
+      }
+    }
+    window.addEventListener('pageshow', handlePageShow)
+    return () => window.removeEventListener('pageshow', handlePageShow)
   }, [])
 
   return (

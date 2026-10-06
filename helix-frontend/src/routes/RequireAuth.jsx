@@ -17,10 +17,11 @@ import { selectIsAuthenticated, selectUserRole } from '../redux/slices/authSlice
  */
 export default function RequireAuth({ roles = [], children }) {
   const isAuthenticated = useSelector(selectIsAuthenticated)
+  const hasToken = !!localStorage.getItem('helix_access_token')
   const userRole = useSelector(selectUserRole)
   const location = useLocation()
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !hasToken) {
     // Preserve the attempted URL so we can redirect back after login
     return <Navigate to="/login" state={{ from: location }} replace />
   }

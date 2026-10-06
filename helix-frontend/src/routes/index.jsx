@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom'
 
 // Layouts
 import AppLayout from '../layouts/AppLayout'
@@ -97,6 +97,9 @@ export default function AppRouter() {
             }
           />
 
+          {/* Visits route alias — redirect to patients register */}
+          <Route path="/visits" element={<Navigate to="/patients" replace />} />
+
           {/* Direct visit detail view */}
           <Route path="/visits/:visitId" element={<VisitDetailPage />} />
 
@@ -166,9 +169,9 @@ export default function AppRouter() {
               <div className="text-center">
                 <div className="text-4xl font-bold text-brand-navy mb-2">403</div>
                 <p className="text-ink-secondary mb-4">You don't have permission to access this page.</p>
-                <a href="/dashboard" className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium">
+                <Link to="/dashboard" className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium">
                   ← Back to dashboard
-                </a>
+                </Link>
               </div>
             </div>
           }
@@ -182,9 +185,9 @@ export default function AppRouter() {
               <div className="text-center">
                 <div className="text-4xl font-bold text-brand-navy mb-2">404</div>
                 <p className="text-ink-secondary mb-4">Page not found.</p>
-                <a href="/" className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium">
-                  ← Go home
-                </a>
+                <Link to="/dashboard" className="text-brand-blue hover:text-brand-blue-dark text-sm font-medium">
+                  ← Back to dashboard
+                </Link>
               </div>
             </div>
           }

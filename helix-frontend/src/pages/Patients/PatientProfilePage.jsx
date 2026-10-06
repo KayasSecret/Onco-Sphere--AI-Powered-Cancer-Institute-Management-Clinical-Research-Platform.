@@ -31,6 +31,7 @@ import {
   RiPencilLine,
   RiCheckLine,
   RiTimeLine,
+  RiArrowLeftLine,
 } from 'react-icons/ri'
 import { toast } from 'sonner'
 import patientService from '../../services/patientService'
@@ -247,7 +248,36 @@ export default function PatientProfilePage() {
   const age = calculateAge(patient.date_of_birth)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Top Breadcrumb & Back Bar */}
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <nav className="flex items-center gap-1.5 text-ink-secondary">
+          <button
+            type="button"
+            onClick={() => navigate('/patients')}
+            className="hover:text-brand-blue font-medium transition-colors cursor-pointer"
+          >
+            Patient Register
+          </button>
+          <span className="opacity-40">/</span>
+          <span className="text-ink-primary font-semibold truncate max-w-xs">{patient.full_name}</span>
+        </nav>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1)
+            } else {
+              navigate('/patients')
+            }
+          }}
+          className="text-ink-secondary hover:text-ink-primary text-xs flex items-center gap-1 h-8"
+        >
+          <RiArrowLeftLine size={14} /> Back to Patients
+        </Button>
+      </div>
+
       {/* Profile Header Block */}
       <div className="bg-brand-navy text-ink-inverse p-4 sm:p-6 rounded-lg shadow-sm flex flex-col sm:flex-row sm:items-center gap-4 relative overflow-hidden">
         {/* Profile Image */}

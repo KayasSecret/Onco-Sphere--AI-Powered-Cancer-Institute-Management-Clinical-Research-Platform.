@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { useState, useEffect, useRef } from 'react'
 import {
@@ -255,13 +255,18 @@ function SidebarContent({ collapsed, onClose, user, filteredNav, onLogout, onNav
 export default function AppLayout() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const sidebarOpen = useSelector(selectSidebarOpen)
   const user = useSelector(selectUser)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
+    if (!localStorage.getItem('helix_access_token')) {
+      navigate('/login', { replace: true, state: { from: location } })
+      return
+    }
     dispatch(getMeThunk())
-  }, [dispatch])
+  }, [dispatch, navigate, location])
 
   const filteredNav = NAV_ITEMS.filter(
     (item) => item.roles.includes(user?.role)
@@ -269,7 +274,7 @@ export default function AppLayout() {
 
   const handleLogout = async () => {
     await dispatch(logoutThunk())
-    navigate('/login')
+    navigate('/login', { replace: true })
   }
 
   const closeSidebar = () => dispatch(setSidebarOpen(false))

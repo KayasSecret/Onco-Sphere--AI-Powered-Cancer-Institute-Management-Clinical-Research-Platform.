@@ -7,10 +7,6 @@ import ICSRLogo from '../../assets/ICSR-LOGO.png'
 export default function LandingPage() {
   const isAuthenticated = useSelector(selectIsAuthenticated)
 
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
-  }
-
   return (
     // NOTE: Root cause of your original bug — classes like `bg-brand-navy`,
     // `text-ink-inverse`, `brand-blue` were likely not defined in tailwind.config.js,
@@ -27,18 +23,29 @@ export default function LandingPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            to="/login"
-            className="text-sm text-slate-300 hover:text-white font-medium px-3 py-2 transition-colors"
-          >
-            Sign In
-          </Link>
-          <Link
-            to="/register/apply"
-            className="text-sm bg-blue-600 hover:bg-blue-500 text-white hover:text-white font-medium px-4 py-2 rounded-md transition-colors"
-          >
-            Apply for Access
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              to="/dashboard"
+              className="text-sm bg-blue-600 hover:bg-blue-500 text-white hover:text-white font-medium px-4 py-2 rounded-md transition-colors"
+            >
+              Go to Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="text-sm text-slate-300 hover:text-white font-medium px-3 py-2 transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/register/apply"
+                className="text-sm bg-blue-600 hover:bg-blue-500 text-white hover:text-white font-medium px-4 py-2 rounded-md transition-colors"
+              >
+                Apply for Access
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -73,18 +80,20 @@ export default function LandingPage() {
 
           <div className="pt-4 flex flex-col sm:flex-row justify-center gap-4">
             <Link
-              to="/login"
+              to={isAuthenticated ? "/dashboard" : "/login"}
               className="group bg-blue-600 hover:bg-blue-500 text-white hover:text-white font-medium px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-lg shadow-blue-600/20"
             >
-              Sign in to platform
+              {isAuthenticated ? "Open Dashboard" : "Sign in to platform"}
               <RiArrowRightLine className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              to="/register/apply"
-              className="border border-white/20 hover:bg-white hover:text-slate-950 text-white font-medium px-6 py-3 rounded-lg transition-colors"
-            >
-              Apply as Researcher / Intern
-            </Link>
+            {!isAuthenticated && (
+              <Link
+                to="/register/apply"
+                className="border border-white/20 hover:bg-white hover:text-slate-950 text-white font-medium px-6 py-3 rounded-lg transition-colors"
+              >
+                Apply as Researcher / Intern
+              </Link>
+            )}
           </div>
         </div>
       </section>
