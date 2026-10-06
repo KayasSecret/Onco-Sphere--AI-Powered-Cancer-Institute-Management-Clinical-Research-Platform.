@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import PhotoSelector from '../../components/PhotoSelector'
 import { cancerHierarchy, cancerCategories } from '../../config/cancerHierarchy'
 import DatePicker from '../../components/DatePicker'
+import { phoneRegex, emailRegex } from '../../lib/validation'
 
 const schema = yup.object({
   full_name: yup.string().trim().min(2, 'Name must be at least 2 characters').required('Name is required'),
@@ -34,18 +35,23 @@ const schema = yup.object({
   photo_url: yup.string().nullable(),
   phone: yup
     .string()
+    .trim()
     .required('Phone number is required')
-    .matches(/^\d+$/, 'Phone number must contain numbers only')
-    .min(10, 'Phone number must be at least 10 digits')
-    .max(15, 'Phone number cannot exceed 15 digits'),
-  email: yup.string().nullable().transform((v, o) => (o === '' ? null : v)).email('Enter valid email'),
-  address: yup.string().min(5, 'Enter detailed address').required('Address is required'),
-  emergency_contact_name: yup.string().nullable(),
-  emergency_contact_phone: yup
+    .matches(phoneRegex, 'Enter a valid 10-digit Indian mobile number'),
+  email: yup
     .string()
+    .trim()
     .nullable()
     .transform((v, o) => (o === '' ? null : v))
-    .test('is-numeric-phone', 'Phone number must contain numbers only', (val) => !val || /^\d+$/.test(val)),
+    .matches(emailRegex, 'Enter a valid email address'),
+  address: yup.string().min(5, 'Enter detailed address').required('Address is required'),
+  emergency_contact_name: yup.string().nullable(),
+ emergency_contact_phone: yup
+    .string()
+    .trim()
+    .nullable()
+    .transform((v, o) => (o === '' ? null : v))
+    .matches(phoneRegex, 'Enter a valid 10-digit Indian mobile number'),
   emergency_contact_relationship: yup.string().nullable(),
   department: yup.string().nullable(),
   assigned_doctor: yup.string().nullable(),
@@ -326,13 +332,15 @@ export default function PatientRegisterPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField label="Phone Number" error={errors.phone?.message} required>
                 <Input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   placeholder="9876543210"
-                  maxLength={15}
-                  {...register('phone')}
-                  onChange={(e) => {
-                    e.target.value = e.target.value.replace(/\D/g, '')
-                    register('phone').onChange(e)
-                  }}
+                  {...register('phone', {
+                    onChange: (e) => {
+                      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10)
+                    },
+                  })}
                 />
               </FormField>
 
@@ -358,10 +366,10 @@ export default function PatientRegisterPage() {
               <FormField label="Contact Phone" error={errors.emergency_contact_phone?.message}>
                 <Input
                   placeholder="9876543210"
-                  maxLength={15}
+                  maxLength={10}
                   {...register('emergency_contact_phone')}
                   onChange={(e) => {
-                    e.target.value = e.target.value.replace(/\D/g, '')
+                    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10)
                     register('emergency_contact_phone').onChange(e)
                   }}
                 />

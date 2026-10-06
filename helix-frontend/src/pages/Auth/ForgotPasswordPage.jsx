@@ -15,9 +15,14 @@ import {
   RiShieldKeyholeLine,
   RiRefreshLine,
 } from 'react-icons/ri'
+import { emailRegex } from '../../lib/validation'
 
 const emailSchema = yup.object({
-  email: yup.string().email('Enter a valid email address').required('Email is required'),
+  email: yup
+    .string()
+    .trim()
+    .required('Email is required')
+    .matches(emailRegex, 'Enter a valid email address'),
 })
 
 const otpSchema = yup.object({

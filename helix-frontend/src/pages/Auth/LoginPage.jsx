@@ -9,9 +9,14 @@ import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { RiEyeLine, RiEyeOffLine, RiLockLine, RiMailLine, RiErrorWarningLine, RiArrowLeftLine, RiCheckLine } from 'react-icons/ri'
+import { emailRegex } from '../../lib/validation'
 
 const schema = yup.object({
-  email: yup.string().email('Enter a valid email').required('Email is required'),
+ email: yup
+    .string()
+    .trim()
+    .required('Email is required')
+    .matches(emailRegex, 'Enter a valid email address'),
   password: yup.string().min(6, 'Minimum 6 characters').required('Password is required'),
   rememberMe: yup.boolean().default(false),
 })

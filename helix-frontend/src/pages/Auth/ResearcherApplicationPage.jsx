@@ -22,6 +22,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+import { phoneRegex, emailRegex } from '../../lib/validation'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
@@ -81,8 +82,16 @@ const step1Schema = yup.object({
     }
   ),
   gender:            yup.string().required('Gender is required'),
-  phone:             yup.string().min(7, 'Enter a valid phone number').required('Phone is required'),
-  email:             yup.string().email('Enter a valid email').required('Email is required'),
+  phone: yup
+    .string()
+    .trim()
+    .required('Phone is required')
+    .matches(phoneRegex, 'Enter a valid 10-digit Indian mobile number'),
+  email: yup
+    .string()
+    .trim()
+    .required('Email is required')
+    .matches(emailRegex, 'Enter a valid email address'),
   password:          yup.string().min(8, 'Minimum 8 characters').required('Password is required'),
   confirm_password:  yup.string()
     .oneOf([yup.ref('password')], 'Passwords do not match')
@@ -846,7 +855,18 @@ export default function ResearcherApplicationPage() {
             </select>
           </FormRow>
           <FormRow label="Phone Number" required error={stepErrors.phone}>
-            <input {...register('phone')} placeholder="+91 98765 43210" className={fieldCls} />
+            <input
+              {...register('phone', {
+                onChange: (e) => {
+                  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10)
+                },
+              })}
+              type="tel"
+              inputMode="numeric"
+              maxLength={10}
+              placeholder="9876543210"
+              className={fieldCls}
+            />
           </FormRow>
         </div>
         <FormRow label="Email Address" required error={stepErrors.email}>
