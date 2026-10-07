@@ -390,9 +390,16 @@ export default function SettingsPage() {
                     <Button
                       type="submit"
                       disabled={savingProfile}
-                      className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs px-4 py-2 font-bold rounded-md"
+                      className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs px-4 py-2 font-bold rounded-md flex items-center justify-center gap-2"
                     >
-                      {savingProfile ? 'Saving Details...' : 'Save Profile'}
+                      {savingProfile ? (
+                        <>
+                          <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Saving Details…</span>
+                        </>
+                      ) : (
+                        'Save Profile'
+                      )}
                     </Button>
                     <Button
                       type="button"
@@ -674,9 +681,16 @@ export default function SettingsPage() {
                     <Button
                       type="submit"
                       disabled={loadingPassword}
-                      className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs px-4 py-2 font-bold rounded-md"
+                      className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs px-4 py-2 font-bold rounded-md flex items-center justify-center gap-2"
                     >
-                      {loadingPassword ? 'Updating Password...' : 'Update Password'}
+                      {loadingPassword ? (
+                        <>
+                          <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Updating Password…</span>
+                        </>
+                      ) : (
+                        'Update Password'
+                      )}
                     </Button>
                   </form>
                 </CardContent>

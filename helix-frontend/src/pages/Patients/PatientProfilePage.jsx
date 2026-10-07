@@ -578,19 +578,34 @@ export default function PatientProfilePage() {
                     <Input
                       id="report-file-input"
                       type="file"
+                      disabled={uploadingReport}
                       accept=".pdf,.doc,.docx,.txt,.xls,.xlsx"
                       onChange={(e) => setReportFile(e.target.files[0])}
-                      className="cursor-pointer text-xs"
+                      className="cursor-pointer text-xs disabled:opacity-60"
                     />
                   </div>
                   <Button
                     type="submit"
                     disabled={uploadingReport}
-                    className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse font-semibold h-10"
+                    className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse font-semibold h-10 flex items-center justify-center gap-2"
                   >
-                    {uploadingReport ? 'Uploading...' : 'Upload Document'}
+                    {uploadingReport ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Uploading Document…</span>
+                      </>
+                    ) : (
+                      'Upload Document'
+                    )}
                   </Button>
                 </form>
+
+                {uploadingReport && (
+                  <div className="mt-3 p-2.5 rounded-lg bg-brand-blue/10 border border-brand-blue/20 flex items-center gap-2 text-xs text-brand-blue animate-fade-in">
+                    <span className="w-3.5 h-3.5 border-2 border-brand-blue/30 border-t-brand-blue rounded-full animate-spin shrink-0" />
+                    <span className="font-medium">Uploading and processing document, please wait…</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

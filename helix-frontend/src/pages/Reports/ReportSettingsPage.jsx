@@ -17,6 +17,7 @@ import {
 export default function ReportSettingsPage() {
   const [activeSubTab, setActiveSubTab] = useState('institute')
   const [loading, setLoading] = useState(false)
+  const [uploadingType, setUploadingType] = useState(null) // 'logo' | 'stamp' | 'signature' | null
 
   // 1. Institute Info States
   const [instName, setInstName] = useState('')
@@ -97,7 +98,8 @@ export default function ReportSettingsPage() {
 
   const handleImageUpload = async (e, type) => {
     const file = e.target.files[0]
-    if (!file) return
+    if (!file || uploadingType) return
+    setUploadingType(type)
     const toastId = toast.loading(`Uploading ${type}...`)
     try {
       const res = await patientService.uploadImage(file)
@@ -108,6 +110,8 @@ export default function ReportSettingsPage() {
       toast.success(`${type} uploaded successfully.`, { id: toastId })
     } catch {
       toast.error(`Failed to upload ${type}.`, { id: toastId })
+    } finally {
+      setUploadingType(null)
     }
   }
 
@@ -224,10 +228,19 @@ export default function ReportSettingsPage() {
                           <span className="text-[10px] text-ink-disabled">No Logo</span>
                         )}
                       </div>
-                      <label className="cursor-pointer">
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'logo')} />
+                      <label className={uploadingType ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}>
+                        <input type="file" accept="image/*" disabled={!!uploadingType} className="hidden" onChange={(e) => handleImageUpload(e, 'logo')} />
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-surface-border rounded text-xs font-semibold hover:bg-surface-hover text-ink-primary">
-                          <RiUploadCloud2Line size={14} /> Upload Logo
+                          {uploadingType === 'logo' ? (
+                            <>
+                              <span className="w-3.5 h-3.5 border-2 border-brand-blue/30 border-t-brand-blue rounded-full animate-spin" />
+                              <span>Uploading Logo…</span>
+                            </>
+                          ) : (
+                            <>
+                              <RiUploadCloud2Line size={14} /> Upload Logo
+                            </>
+                          )}
                         </span>
                       </label>
                     </div>
@@ -243,10 +256,19 @@ export default function ReportSettingsPage() {
                           <span className="text-[10px] text-ink-disabled">No Stamp</span>
                         )}
                       </div>
-                      <label className="cursor-pointer">
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'stamp')} />
+                      <label className={uploadingType ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}>
+                        <input type="file" accept="image/*" disabled={!!uploadingType} className="hidden" onChange={(e) => handleImageUpload(e, 'stamp')} />
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-surface-border rounded text-xs font-semibold hover:bg-surface-hover text-ink-primary">
-                          <RiUploadCloud2Line size={14} /> Upload Stamp
+                          {uploadingType === 'stamp' ? (
+                            <>
+                              <span className="w-3.5 h-3.5 border-2 border-brand-blue/30 border-t-brand-blue rounded-full animate-spin" />
+                              <span>Uploading Stamp…</span>
+                            </>
+                          ) : (
+                            <>
+                              <RiUploadCloud2Line size={14} /> Upload Stamp
+                            </>
+                          )}
                         </span>
                       </label>
                     </div>
@@ -254,8 +276,17 @@ export default function ReportSettingsPage() {
                 </div>
 
                 <div className="pt-4 border-t border-surface-border">
-                  <Button type="submit" disabled={loading} className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs flex items-center gap-1.5 font-bold">
-                    <RiSaveLine size={14} /> Save Branding Settings
+                  <Button type="submit" disabled={loading} className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs flex items-center gap-2 font-bold">
+                    {loading ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Saving Settings…</span>
+                      </>
+                    ) : (
+                      <>
+                        <RiSaveLine size={14} /> Save Branding Settings
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>
@@ -286,18 +317,34 @@ export default function ReportSettingsPage() {
                           <img src={newSigUrl} alt="Signature" className="h-full object-contain" />
                         </div>
                       )}
-                      <label className="cursor-pointer">
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'signature')} />
+                      <label className={uploadingType ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}>
+                        <input type="file" accept="image/*" disabled={!!uploadingType} className="hidden" onChange={(e) => handleImageUpload(e, 'signature')} />
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-surface-border rounded text-xs font-semibold hover:bg-surface-hover text-ink-primary h-10">
-                          <RiUploadCloud2Line size={14} /> Browse Image
+                          {uploadingType === 'signature' ? (
+                            <>
+                              <span className="w-3.5 h-3.5 border-2 border-brand-blue/30 border-t-brand-blue rounded-full animate-spin" />
+                              <span>Uploading…</span>
+                            </>
+                          ) : (
+                            <>
+                              <RiUploadCloud2Line size={14} /> Browse Image
+                            </>
+                          )}
                         </span>
                       </label>
                     </div>
                   </div>
                 </div>
 
-                <Button type="submit" disabled={loading} className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs font-bold">
-                  Add Authorized Signatory
+                <Button type="submit" disabled={loading} className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs font-bold flex items-center gap-2">
+                  {loading ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Adding Signatory…</span>
+                    </>
+                  ) : (
+                    'Add Authorized Signatory'
+                  )}
                 </Button>
               </form>
 

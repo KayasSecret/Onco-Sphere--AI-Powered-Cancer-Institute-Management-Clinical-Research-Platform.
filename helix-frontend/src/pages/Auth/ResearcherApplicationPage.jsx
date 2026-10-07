@@ -402,6 +402,7 @@ export default function ResearcherApplicationPage() {
   const [draftId, setDraftId]         = useState(null)
   const [lastSaved, setLastSaved]     = useState(null)
   const [saveLoading, setSaveLoading] = useState(false)
+  const [isAdvancing, setIsAdvancing] = useState(false)
 
   // Password toggles
   const [showPw,    setShowPw]    = useState(false)
@@ -562,60 +563,66 @@ export default function ResearcherApplicationPage() {
 
   // ── Step navigation ────────────────────────────────────────────────────────
   const goNext = async () => {
-    if (step === 1) {
-      const dobVal = getValues('date_of_birth')
-      const age = calculateAge(dobVal)
-      if (age !== null && age < 18) {
-        setStepErrors({ date_of_birth: 'You are not eligible. Minimum age requirement is 18 years.' })
+    if (isAdvancing) return
+    setIsAdvancing(true)
+    try {
+      if (step === 1) {
+        const dobVal = getValues('date_of_birth')
+        const age = calculateAge(dobVal)
+        if (age !== null && age < 18) {
+          setStepErrors({ date_of_birth: 'You are not eligible. Minimum age requirement is 18 years.' })
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+          return
+        }
+      }
+      if (step < 4) {
+        const valid = await validateStep(step)
+        if (!valid) {
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+          return
+        }
+        setCompleted(prev => new Set([...prev, step]))
+        // Save draft on step advance
+        const email = getValues('email')
+        if (email) {
+          try {
+            if (draftId) {
+              await researcherService.updateDraft(draftId, step + 1, collectPayload())
+              setLastSaved(new Date())
+            } else {
+              const res = await researcherService.saveDraft(email, step + 1, collectPayload())
+              setDraftId(res.data.id)
+              localStorage.setItem(DRAFT_EMAIL_KEY, email)
+              localStorage.setItem(DRAFT_ID_KEY, String(res.data.id))
+              setLastSaved(new Date())
+            }
+          } catch {}
+        }
+        setStep(s => s + 1)
         window.scrollTo({ top: 0, behavior: 'smooth' })
-        return
-      }
-    }
-    if (step < 4) {
-      const valid = await validateStep(step)
-      if (!valid) {
+      } else if (step === 4) {
+        // Step 4 → Review: validate declarations + check doc uploads
+        const vals = getValues()
+        const errs = {}
+        if (!vals.agree_accuracy) errs.agree_accuracy = 'You must certify the information is accurate'
+        if (!vals.agree_terms)    errs.agree_terms    = 'You must agree to the terms of data use'
+
+        const missing = []
+        if (!docUrls.id_proof_url)         missing.push('Government ID Proof')
+        if (!docUrls.institutional_id_url) missing.push('Institutional ID Card')
+
+        if (Object.keys(errs).length > 0) setStepErrors(errs)
+        if (missing.length > 0) setDocError('id_proof_url', `Required: ${missing.join(' and ')}`)
+
+        if (Object.keys(errs).length > 0 || missing.length > 0) return
+
+        setStepErrors({})
+        setCompleted(prev => new Set([...prev, 4]))
+        setStep(5)
         window.scrollTo({ top: 0, behavior: 'smooth' })
-        return
       }
-      setCompleted(prev => new Set([...prev, step]))
-      // Save draft on step advance
-      const email = getValues('email')
-      if (email) {
-        try {
-          if (draftId) {
-            await researcherService.updateDraft(draftId, step + 1, collectPayload())
-            setLastSaved(new Date())
-          } else {
-            const res = await researcherService.saveDraft(email, step + 1, collectPayload())
-            setDraftId(res.data.id)
-            localStorage.setItem(DRAFT_EMAIL_KEY, email)
-            localStorage.setItem(DRAFT_ID_KEY, String(res.data.id))
-            setLastSaved(new Date())
-          }
-        } catch {}
-      }
-      setStep(s => s + 1)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    } else if (step === 4) {
-      // Step 4 → Review: validate declarations + check doc uploads
-      const vals = getValues()
-      const errs = {}
-      if (!vals.agree_accuracy) errs.agree_accuracy = 'You must certify the information is accurate'
-      if (!vals.agree_terms)    errs.agree_terms    = 'You must agree to the terms of data use'
-
-      const missing = []
-      if (!docUrls.id_proof_url)         missing.push('Government ID Proof')
-      if (!docUrls.institutional_id_url) missing.push('Institutional ID Card')
-
-      if (Object.keys(errs).length > 0) setStepErrors(errs)
-      if (missing.length > 0) setDocError('id_proof_url', `Required: ${missing.join(' and ')}`)
-
-      if (Object.keys(errs).length > 0 || missing.length > 0) return
-
-      setStepErrors({})
-      setCompleted(prev => new Set([...prev, 4]))
-      setStep(5)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } finally {
+      setIsAdvancing(false)
     }
   }
 
@@ -1405,10 +1412,20 @@ export default function ResearcherApplicationPage() {
             )}
             <button
               onClick={goNext}
-              className="flex-1 h-11 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium text-sm transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
+              disabled={isAdvancing}
+              className="flex-1 h-11 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium text-sm transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              {step === 4 ? 'Review Application' : 'Continue'}
-              {step < 4 && <RiArrowRightLine size={14} />}
+              {isAdvancing ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Saving &amp; Continuing…</span>
+                </>
+              ) : (
+                <>
+                  {step === 4 ? 'Review Application' : 'Continue'}
+                  {step < 4 && <RiArrowRightLine size={14} />}
+                </>
+              )}
             </button>
           </div>
         )}

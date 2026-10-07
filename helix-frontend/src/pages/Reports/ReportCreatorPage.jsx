@@ -594,8 +594,17 @@ export default function ReportCreatorPage() {
 
           {/* Actions */}
           <div className="pt-4 border-t border-surface-border flex gap-2">
-            <Button onClick={handleSaveReport} disabled={loading} className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs flex-1 flex items-center justify-center gap-1 font-bold h-10">
-              <RiSaveLine size={16} /> Save Document
+            <Button onClick={handleSaveReport} disabled={loading} className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse text-xs flex-1 flex items-center justify-center gap-2 font-bold h-10">
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Saving Document…</span>
+                </>
+              ) : (
+                <>
+                  <RiSaveLine size={16} /> Save Document
+                </>
+              )}
             </Button>
           </div>
 

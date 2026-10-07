@@ -99,6 +99,8 @@ export default function AdminListPage() {
 
   // Full Widescreen Application Viewer state
   const [viewingApplicationUser, setViewingApplicationUser] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [processingApproval, setProcessingApproval] = useState(null) // 'APPROVE' | 'REJECT' | null
 
   const {
     register,
@@ -137,6 +139,8 @@ export default function AdminListPage() {
   }, [formOpen, editUser, reset])
 
   const handleFormSubmit = async (data) => {
+    if (isSubmitting) return
+    setIsSubmitting(true)
     try {
       if (editUser) {
         await dispatch(updateAdminThunk({ id: editUser.id, data })).unwrap()
@@ -149,6 +153,8 @@ export default function AdminListPage() {
       dispatch(fetchAdminsThunk({ page, limit, search }))
     } catch (err) {
       toast.error(err || 'Operation failed.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -488,9 +494,17 @@ export default function AdminListPage() {
               </Button>
               <Button
                 type="submit"
-                className="w-full sm:w-auto bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse font-semibold"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse font-semibold flex items-center justify-center gap-2"
               >
-                {editUser ? 'Save Details' : 'Create Account'}
+                {isSubmitting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>{editUser ? 'Saving Details…' : 'Creating Account…'}</span>
+                  </>
+                ) : (
+                  editUser ? 'Save Details' : 'Create Account'
+                )}
               </Button>
             </DialogFooter>
           </form>
@@ -727,7 +741,10 @@ export default function AdminListPage() {
                   {viewingApplicationUser.is_approved === 'PENDING' && (
                     <>
                       <button
+                        disabled={!!processingApproval}
                         onClick={async () => {
+                          if (processingApproval) return
+                          setProcessingApproval('REJECT')
                           try {
                             await dispatch(updateApprovalThunk({ id: viewingApplicationUser.id, action: 'REJECT' })).unwrap()
                             toast.success(`${viewingApplicationUser.full_name}'s registration request REJECTED.`)
@@ -735,14 +752,28 @@ export default function AdminListPage() {
                             dispatch(fetchAdminsThunk({ page, limit, search }))
                           } catch (err) {
                             toast.error(err || 'Failed to reject request.')
+                          } finally {
+                            setProcessingApproval(null)
                           }
                         }}
-                        className="px-4 py-2 rounded-md bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-rose-600/10 border border-rose-500/20"
+                        className="px-4 py-2 rounded-md bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-md shadow-rose-600/10 border border-rose-500/20 disabled:opacity-60"
                       >
-                        <RiCloseLine size={16} /> Reject Request
+                        {processingApproval === 'REJECT' ? (
+                          <>
+                            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>Rejecting…</span>
+                          </>
+                        ) : (
+                          <>
+                            <RiCloseLine size={16} /> Reject Request
+                          </>
+                        )}
                       </button>
                       <button
+                        disabled={!!processingApproval}
                         onClick={async () => {
+                          if (processingApproval) return
+                          setProcessingApproval('APPROVE')
                           try {
                             await dispatch(updateApprovalThunk({ id: viewingApplicationUser.id, action: 'APPROVE' })).unwrap()
                             toast.success(`${viewingApplicationUser.full_name}'s registration request APPROVED.`)
@@ -750,11 +781,22 @@ export default function AdminListPage() {
                             dispatch(fetchAdminsThunk({ page, limit, search }))
                           } catch (err) {
                             toast.error(err || 'Failed to approve request.')
+                          } finally {
+                            setProcessingApproval(null)
                           }
                         }}
-                        className="px-5 py-2 rounded-md bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-500/20"
+                        className="px-5 py-2 rounded-md bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 disabled:opacity-60"
                       >
-                        <RiCheckLine size={16} /> Approve Access
+                        {processingApproval === 'APPROVE' ? (
+                          <>
+                            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>Approving…</span>
+                          </>
+                        ) : (
+                          <>
+                            <RiCheckLine size={16} /> Approve Access
+                          </>
+                        )}
                       </button>
                     </>
                   )}

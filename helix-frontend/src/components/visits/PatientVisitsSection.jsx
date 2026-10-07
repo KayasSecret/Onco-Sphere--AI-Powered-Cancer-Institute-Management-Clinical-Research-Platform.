@@ -52,10 +52,13 @@ export default function PatientVisitsSection({ patient, patientId: propPatientId
   const [loadingDetails, setLoadingDetails] = useState(false)
 
   const [addingSymptom, setAddingSymptom] = useState(false)
+  const [savingSymptom, setSavingSymptom] = useState(false)
   const [symForm, setSymForm] = useState({ name: '', severity_score: 5, patient_note: '' })
   const [addingRx, setAddingRx] = useState(false)
+  const [savingRx, setSavingRx] = useState(false)
   const [rxForm, setRxForm] = useState({ name: '', dose: '', frequency: '', duration: '', instructions: '' })
   const [addingAdvice, setAddingAdvice] = useState(false)
+  const [savingAdvice, setSavingAdvice] = useState(false)
   const [adviceText, setAdviceText] = useState('')
 
   const [deleteId, setDeleteId] = useState(null)
@@ -194,7 +197,8 @@ export default function PatientVisitsSection({ patient, patientId: propPatientId
 
   const handleAddSymptom = async (e) => {
     e.preventDefault()
-    if (!symForm.name.trim() || !activeVisitModal) return
+    if (!symForm.name.trim() || !activeVisitModal || savingSymptom) return
+    setSavingSymptom(true)
     try {
       const label = symForm.severity_score <= 3 ? 'Mild' : symForm.severity_score <= 6 ? 'Moderate' : 'Severe'
       const res = await visitService.addSymptom(activeVisitModal.id, {
@@ -210,12 +214,15 @@ export default function PatientVisitsSection({ patient, patientId: propPatientId
       setAddingSymptom(false)
     } catch {
       toast.error('Failed to save symptom.')
+    } finally {
+      setSavingSymptom(false)
     }
   }
 
   const handleAddPrescription = async (e) => {
     e.preventDefault()
-    if (!rxForm.name.trim() || !activeVisitModal) return
+    if (!rxForm.name.trim() || !activeVisitModal || savingRx) return
+    setSavingRx(true)
     try {
       const res = await visitService.addPrescription(activeVisitModal.id, {
         medicines: [
@@ -234,12 +241,15 @@ export default function PatientVisitsSection({ patient, patientId: propPatientId
       setAddingRx(false)
     } catch {
       toast.error('Failed to add prescription.')
+    } finally {
+      setSavingRx(false)
     }
   }
 
   const handleSaveAdvice = async (e) => {
     e.preventDefault()
-    if (!adviceText.trim() || !activeVisitModal) return
+    if (!adviceText.trim() || !activeVisitModal || savingAdvice) return
+    setSavingAdvice(true)
     try {
       const res = await visitService.setFollowUp(activeVisitModal.id, {
         advice_text: adviceText.trim(),
@@ -249,6 +259,8 @@ export default function PatientVisitsSection({ patient, patientId: propPatientId
       setAddingAdvice(false)
     } catch {
       toast.error('Failed to update advice.')
+    } finally {
+      setSavingAdvice(false)
     }
   }
 
@@ -673,9 +685,16 @@ export default function PatientVisitsSection({ patient, patientId: propPatientId
                 type="submit"
                 size="sm"
                 disabled={savingVisit}
-                className="bg-brand-blue hover:bg-brand-blue-dark text-white text-xs font-semibold"
+                className="bg-brand-blue hover:bg-brand-blue-dark text-white text-xs font-semibold flex items-center justify-center gap-1.5"
               >
-                {savingVisit ? 'Saving…' : 'Save Visit Record'}
+                {savingVisit ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Saving…</span>
+                  </>
+                ) : (
+                  'Save Visit Record'
+                )}
               </Button>
             </div>
           </form>
@@ -763,8 +782,15 @@ export default function PatientVisitsSection({ patient, patientId: propPatientId
                         <Button type="button" size="sm" variant="outline" onClick={() => setAddingSymptom(false)} className="text-[11px] h-7">
                           Cancel
                         </Button>
-                        <Button type="submit" size="sm" className="text-[11px] h-7 bg-brand-blue text-white">
-                          Save Symptom
+                        <Button type="submit" size="sm" disabled={savingSymptom} className="text-[11px] h-7 bg-brand-blue text-white flex items-center gap-1.5">
+                          {savingSymptom ? (
+                            <>
+                              <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              <span>Saving…</span>
+                            </>
+                          ) : (
+                            'Save Symptom'
+                          )}
                         </Button>
                       </div>
                     </form>
@@ -844,8 +870,15 @@ export default function PatientVisitsSection({ patient, patientId: propPatientId
                         <Button type="button" size="sm" variant="outline" onClick={() => setAddingRx(false)} className="text-[11px] h-7">
                           Cancel
                         </Button>
-                        <Button type="submit" size="sm" className="text-[11px] h-7 bg-brand-blue text-white">
-                          Save Prescription
+                        <Button type="submit" size="sm" disabled={savingRx} className="text-[11px] h-7 bg-brand-blue text-white flex items-center gap-1.5">
+                          {savingRx ? (
+                            <>
+                              <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              <span>Saving…</span>
+                            </>
+                          ) : (
+                            'Save Prescription'
+                          )}
                         </Button>
                       </div>
                     </form>
@@ -907,8 +940,15 @@ export default function PatientVisitsSection({ patient, patientId: propPatientId
                         <Button type="button" size="sm" variant="outline" onClick={() => setAddingAdvice(false)} className="text-[11px] h-7">
                           Cancel
                         </Button>
-                        <Button type="submit" size="sm" className="text-[11px] h-7 bg-brand-blue text-white">
-                          Save Advice
+                        <Button type="submit" size="sm" disabled={savingAdvice} className="text-[11px] h-7 bg-brand-blue text-white flex items-center gap-1.5">
+                          {savingAdvice ? (
+                            <>
+                              <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              <span>Saving…</span>
+                            </>
+                          ) : (
+                            'Save Advice'
+                          )}
                         </Button>
                       </div>
                     </form>

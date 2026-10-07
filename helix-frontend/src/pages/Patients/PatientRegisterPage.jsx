@@ -99,12 +99,20 @@ export default function PatientRegisterPage() {
     3: ['department', 'assigned_doctor', 'cancer_category', 'cancer_type', 'cancer_stage', 'treatment_status'],
   }
 
+  const [isValidatingStep, setIsValidatingStep] = useState(false)
+
   // ── Step navigation ──────────────────────────────────────────────────────────
   const nextStep = async () => {
+    if (isValidatingStep) return
     const fieldsToValidate = STEP_FIELDS[activeStep]
     if (fieldsToValidate) {
-      const isValid = await trigger(fieldsToValidate)
-      if (!isValid) return
+      setIsValidatingStep(true)
+      try {
+        const isValid = await trigger(fieldsToValidate)
+        if (!isValid) return
+      } finally {
+        setIsValidatingStep(false)
+      }
     }
     setActiveStep((prev) => Math.min(prev + 1, 3))
   }
@@ -494,10 +502,18 @@ export default function PatientRegisterPage() {
           {activeStep < 3 ? (
             <Button
               type="button"
-              className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse"
+              disabled={isValidatingStep}
+              className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse flex items-center justify-center gap-2"
               onClick={nextStep}
             >
-              Continue
+              {isValidatingStep ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Validating…</span>
+                </>
+              ) : (
+                'Continue'
+              )}
             </Button>
           ) : (
             /* Final submit button — calls handleFinalSubmit() programmatically.
@@ -505,10 +521,17 @@ export default function PatientRegisterPage() {
             <Button
               type="button"
               disabled={isSubmitting}
-              className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse"
+              className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse flex items-center justify-center gap-2"
               onClick={handleFinalSubmit}
             >
-              {isSubmitting ? 'Registering...' : 'Register Record'}
+              {isSubmitting ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Registering…</span>
+                </>
+              ) : (
+                'Register Record'
+              )}
             </Button>
           )}
         </div>

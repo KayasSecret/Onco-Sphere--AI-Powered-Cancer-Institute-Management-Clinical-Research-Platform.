@@ -114,14 +114,15 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
     })
   }
 
-  // Dragging / Panning handlers
-  const handleMouseDown = (e) => {
+  // Dragging / Panning handlers (pointer events for unified mouse + touch support)
+  const handlePointerDown = (e) => {
     e.preventDefault()
+    e.target.setPointerCapture(e.pointerId)
     setIsDragging(true)
     dragStart.current = { x: e.clientX - offset.x, y: e.clientY - offset.y }
   }
 
-  const handleMouseMove = (e) => {
+  const handlePointerMove = (e) => {
     if (!isDragging) return
     const newX = e.clientX - dragStart.current.x
     const newY = e.clientY - dragStart.current.y
@@ -138,7 +139,7 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
     setOffset({ x: clampedX, y: clampedY })
   }
 
-  const handleMouseUp = () => {
+  const handlePointerUp = () => {
     setIsDragging(false)
   }
 
@@ -221,7 +222,7 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
       )}
 
       <Dialog open={isOpen} onOpenChange={(open) => { if (!open) closeModal() }}>
-        <DialogContent className="sm:max-w-md bg-surface-card border border-surface-border">
+        <DialogContent className={`bg-surface-card border border-surface-border ${mode === 'select' ? 'sm:max-w-md' : 'sm:max-w-2xl'}`}>
           <DialogHeader>
             <DialogTitle className="text-ink-primary">Profile Photo</DialogTitle>
           </DialogHeader>
@@ -260,7 +261,7 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
           {/* MODE: Live Camera Stream with Front / Back Switch */}
           {mode === 'camera' && (
             <div className="space-y-4 py-2 flex flex-col items-center">
-              <div className="w-[300px] h-[300px] sm:w-[320px] sm:h-[320px] bg-slate-950 rounded-xl overflow-hidden relative border border-surface-border shadow-inner flex items-center justify-center">
+              <div className="w-full aspect-square max-h-[70vh] sm:w-[480px] sm:h-[480px] bg-slate-950 rounded-xl overflow-hidden relative border border-surface-border shadow-inner flex items-center justify-center">
                 <video
                   ref={videoRef}
                   autoPlay
@@ -355,13 +356,14 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
           {/* MODE: Drag, Zoom and Crop Image */}
           {mode === 'crop' && (
             <div className="space-y-4 py-2 flex flex-col items-center">
-              {/* Crop Container with Circle Overlay */}
+              {/* Crop Container */}
               <div
                 className="w-[300px] h-[300px] bg-surface-base rounded-lg overflow-hidden relative cursor-move border border-surface-border"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                style={{ touchAction: 'none' }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
               >
                 <img
                   ref={imageRef}
@@ -379,12 +381,13 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
                     pointerEvents: 'none'
                   }}
                 />
-                
-                {/* Crop Cutout Overlay (Circular Mask) */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div className="w-full h-full bg-black/50 border-[1px] border-dashed border-white/40 rounded-full" 
-                       style={{ boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)' }} />
-                </div>
+
+                {uploading && (
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex flex-col items-center justify-center gap-2 text-white select-none z-10 animate-fade-in">
+                    <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="text-xs font-semibold">Uploading photo…</span>
+                  </div>
+                )}
               </div>
 
               {/* Zoom Slider */}
@@ -396,8 +399,9 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
                   max="3"
                   step="0.01"
                   value={zoom}
+                  disabled={uploading}
                   onChange={(e) => setZoom(parseFloat(e.target.value))}
-                  className="w-full accent-brand-blue h-1.5 bg-surface-hover rounded-lg appearance-none cursor-pointer"
+                  className="w-full accent-brand-blue h-1.5 bg-surface-hover rounded-lg appearance-none cursor-pointer disabled:opacity-50"
                 />
               </div>
 
@@ -406,6 +410,7 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
                 <Button
                   type="button"
                   variant="outline"
+                  disabled={uploading}
                   className="border-surface-border text-ink-primary hover:bg-surface-hover flex items-center gap-1"
                   onClick={() => {
                     if (cameraStream) stopCamera()
@@ -419,9 +424,18 @@ export default function PhotoSelector({ value, onChange, onUploadingChange, cust
                   type="button"
                   disabled={uploading}
                   onClick={handleCropAndSave}
-                  className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse flex items-center gap-1"
+                  className="bg-brand-blue hover:bg-brand-blue-dark text-ink-inverse flex items-center gap-2 font-medium"
                 >
-                  {uploading ? 'Saving...' : <><RiCheckLine size={16} /> Save Crop</>}
+                  {uploading ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Saving Photo…</span>
+                    </>
+                  ) : (
+                    <>
+                      <RiCheckLine size={16} /> Save Crop
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
