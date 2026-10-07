@@ -194,7 +194,7 @@ export default function ReportPrintPage() {
                 />
                 <div className="h-9 w-px bg-[#6B1D1D]/30" />
                 <div>
-                  <p className="text-[11px] font-bold text-[#6B1D1D] uppercase tracking-wider">Shanti Avedna Trust</p>
+                  <p className="text-[11px] font-bold text-[#6B1D1D] uppercase tracking-wider">ICSR</p>
                   <h1 className="text-[17px] font-bold text-[#6B1D1D] uppercase tracking-tight leading-tight">
                     {instSettings?.name || 'Institute of Cancer and Stem Cell Research'}
                   </h1>
@@ -307,7 +307,7 @@ export default function ReportPrintPage() {
                 />
                 <div className="h-9 w-px bg-[#6B1D1D]/30" />
                 <div>
-                  <p className="text-[11px] font-bold text-[#6B1D1D] uppercase tracking-wider">Shanti Avedna Trust</p>
+                  <p className="text-[11px] font-bold text-[#6B1D1D] uppercase tracking-wider">ICSR</p>
                   <h1 className="text-[17px] font-bold text-[#6B1D1D] uppercase tracking-tight leading-tight">
                     {instSettings?.name || 'Institute of Cancer and Stem Cell Research'}
                   </h1>
@@ -466,7 +466,7 @@ export default function ReportPrintPage() {
                 />
                 <div className="h-9 w-px bg-[#6B1D1D]/30" />
                 <div>
-                  <p className="text-[11px] font-bold text-[#6B1D1D] uppercase tracking-wider">Shanti Avedna Trust</p>
+                  <p className="text-[11px] font-bold text-[#6B1D1D] uppercase tracking-wider">ICSR</p>
                   <h1 className="text-[17px] font-bold text-[#6B1D1D] uppercase tracking-tight leading-tight">
                     {instSettings?.name || 'Institute of Cancer and Stem Cell Research'}
                   </h1>
