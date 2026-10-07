@@ -43,7 +43,7 @@ export default function PatientProfilePage() {
   const { id } = useParams()
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  
+
   const patient = useSelector(selectSelectedPatient)
   const status = useSelector(selectPatientStatus)
   const role = useSelector(selectUserRole)
@@ -307,7 +307,7 @@ export default function PatientProfilePage() {
       r.file_type.toLowerCase() === reportsTypeFilter.toLowerCase() ||
       (reportsTypeFilter === 'doc' && ['doc', 'docx'].includes(r.file_type.toLowerCase())) ||
       (reportsTypeFilter === 'xls' && ['xls', 'xlsx'].includes(r.file_type.toLowerCase()))
-    
+
     let matchesDate = true
     if (reportsStartDate || reportsEndDate) {
       const rDateStr = r.created_at.split('T')[0]
@@ -318,7 +318,7 @@ export default function PatientProfilePage() {
         matchesDate = false
       }
     }
-    
+
     return matchesSearch && matchesType && matchesDate
   })
 
@@ -401,7 +401,7 @@ export default function PatientProfilePage() {
               <StatusBadge status={patient.treatment_status} className="bg-white/10 text-white border-white/25 hover:bg-white/20" />
             </div>
           </div>
-          
+
           <p className="text-xs text-brand-light/80 font-light">
             {patient.gender} &bull; {age} years &bull; Blood group {patient.blood_group}
           </p>
@@ -694,7 +694,7 @@ export default function PatientProfilePage() {
                       const isPdf = report.file_type.toLowerCase() === 'pdf'
                       const isWord = ['doc', 'docx'].includes(report.file_type.toLowerCase())
                       const FileIcon = isPdf ? RiFilePdfLine : (isWord ? RiFileWordLine : RiFileTextLine)
-                      
+
                       return (
                         <div key={report.id} className="flex items-center justify-between p-4 hover:bg-surface-hover/40 transition-colors">
                           <div className="flex items-center gap-3">
@@ -909,7 +909,16 @@ export default function PatientProfilePage() {
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {filteredCancerImages.map((img) => {
-                    const displayTime = img.captured_at || img.created_at
+                    const displayTime = img.captured_at
+                      ? new Date(`${img.captured_at}Z`)
+                      : new Date(img.created_at)
+
+                    console.log('IMAGE TIMESTAMP:', {
+                      captured_at: img.captured_at,
+                      created_at: img.created_at,
+                      parsed: new Date(img.captured_at || img.created_at),
+                      local: new Date(img.captured_at || img.created_at).toLocaleString('en-IN')
+                    })
                     const isRenaming = renamingImageId === img.id
                     return (
                       <div
@@ -1079,7 +1088,11 @@ export default function PatientProfilePage() {
                         <div className="flex items-center gap-1 text-xs text-ink-secondary mt-1">
                           <RiTimeLine size={12} />
                           <span>
-                            Captured: {new Date(activeImageModal.captured_at || activeImageModal.created_at).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'medium' })}
+                            Captured: {new Date(
+                              activeImageModal.captured_at
+                                ? `${activeImageModal.captured_at}Z`
+                                : activeImageModal.created_at
+                            ).toLocaleString('en-IN', { dateStyle: 'long', timeStyle: 'medium' })}
                           </span>
                         </div>
                       </div>

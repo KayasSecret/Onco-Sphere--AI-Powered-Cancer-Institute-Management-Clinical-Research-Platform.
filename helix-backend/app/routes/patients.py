@@ -3,7 +3,7 @@ import os
 import mimetypes
 import urllib.request
 from typing import List, Optional
-from datetime import datetime, date
+from datetime import datetime, date,timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -390,7 +390,7 @@ def create_patient_cancer_image(
         patient_id=patient_id,
         title=payload.title,
         image_url=payload.image_url,
-        captured_at=payload.captured_at or datetime.utcnow(),
+        captured_at=payload.captured_at or datetime.now(timezone.utc),
     )
     db.add(new_img)
     db.commit()
